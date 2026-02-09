@@ -1,0 +1,20 @@
+name: HolyMon
+
+plugins:
+  - name: solidity
+  - name: hardhat
+
+solidity:
+  import_remapping:
+    - "@openzeppelin/contracts/=OpenZeppelin/contracts/"
+
+networks:
+  monad-testnet:
+    chain_id: 10143
+    node:
+      uri: https://testnet-rpc.monad.xyz
+    block_explorers:
+      - name: monadvision
+        url: https://testnet.monadvision.com
+      - name: monadscan
+        url: https://testnet.monadscan.com
