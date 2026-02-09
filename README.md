@@ -9,6 +9,7 @@
 <p align="center">
   <a href="#-features">Features</a> •
   <a href="#-how-it-works">How It Works</a> •
+  <a href="#-x402-micropayments">x402</a> •
   <a href="#-staking-protocol">Staking</a> •
   <a href="#-quick-start">Quick Start</a> •
   <a href="#-documentation">Documentation</a>
@@ -26,6 +27,7 @@ HolyMon envisions a world where digital nomads can:
 - **Create AI agents** as digital extensions of themselves
 - **Stake tokens** to unlock privileges and earn rewards
 - **Launch community tokens** for their agent ecosystems
+- **Monetize interactions** through x402 micropayments
 - **Participate in reputation networks** across chains
 - **Travel seamlessly** with portable digital identities
 
@@ -59,6 +61,62 @@ Deploy ERC-20 tokens for your agent communities with:
 - **Automatic liquidity** management
 - **Governance integration** with staking tiers
 - **Cross-chain compatibility** (coming soon)
+
+### ⚡ x402 Micropayments
+Enable seamless micropayments for agent interactions with the x402 protocol:
+
+**How It Works:**
+```
+┌─────────────┐
+│   User     │
+│   Request  │  "Chat with agent #123"
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│  x402      │  • Check pricing
+│  Facilitator │  • Route payment
+│             │  • Execute interaction
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│   Agent    │  ✅ Response delivered
+│   Responds  │  ✅ Payment settled
+└─────────────┘
+```
+
+**Key Features:**
+- **Atomic Payments:** Pay-per-interaction with instant settlement
+- **Transparent Pricing:** Public pricing tables for each action type
+- **Agent Revenue:** Earn from every interaction with your agent
+- **Low Fees:** Minimal gas costs through batched transactions
+- **Cross-Chain:** Works across all supported networks
+
+**Pricing Structure:**
+```javascript
+// Example pricing for your agent
+{
+  "chat": "0.001 MON",        // Per message
+  "generate": "0.01 MON",     // Per generation
+  "analyze": "0.005 MON",     // Per analysis
+  "custom": "0.02 MON"        // Custom actions
+}
+```
+
+**Integration Flow:**
+1. **Configure x402** on your agent card with facilitator address
+2. **Set pricing** for different interaction types (chat, generate, analyze, etc.)
+3. **Enable service** in HolyMon dashboard
+4. **Automatic routing** - x402 handles payments transparently
+5. **Earn rewards** - Monetize your agent's services
+
+**Benefits:**
+- ✅ **Monetization:** Turn your agent into a revenue stream
+- ✅ **User Control:** Users see exact costs before interaction
+- ✅ **Trustless:** Smart contract guarantees payment settlement
+- ✅ **Flexible:** Set your own pricing model
+- ✅ **Analytics:** Track earnings and usage in real-time
 
 ### 🏆 Reputation Network
 Participate in our decentralized reputation system:
@@ -130,19 +188,19 @@ Your agents travel with you:
                   │
        ┌──────────┼──────────┐
        │          │          │
-       ▼          ▼          ▼
-┌─────────┐ ┌─────────┐ ┌─────────┐
-│  Token  │ │  NFT    │ │  DAO    │
-│  Launch │ │  Sales   │ │  Vote   │
-└─────────┘ └─────────┘ └─────────┘
-       │          │          │
-       └──────────┼──────────┘
-                  │
-                  ▼
-           ┌─────────────┐
-           │  Community │
-           │  Growth    │
-           └─────────────┘
+       ▼          ▼          ▼          ▼
+┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐
+│  Token  │ │  NFT    │ │  DAO    │ │  x402   │
+│  Launch │ │  Sales   │ │  Vote   │ │Payments │
+└─────────┘ └─────────┘ └─────────┘ └─────────┘
+       │          │          │          │
+       └──────────┼──────────┼──────────┘
+                  │          │
+                  ▼          ▼
+           ┌─────────────┐ ┌─────────────┐
+           │  Community │ │  Monetized │
+           │  Growth    │ │ Interactions│
+           └─────────────┘ └─────────────┘
 ```
 
 ---
