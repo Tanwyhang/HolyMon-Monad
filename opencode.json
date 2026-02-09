@@ -1,0 +1,13 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "monad-mcp": {
+      "type": "local",
+      "command": [
+        "bun",
+        "/Users/wy/Documents/HolyMon/monad-mcp/src/index.ts"
+      ],
+      "enabled": true
+    }
+  }
+}
