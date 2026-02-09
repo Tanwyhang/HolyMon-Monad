@@ -1,0 +1,19 @@
+{
+  "name": "holymon-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for HolyMon platform",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deploy.js --network monad-testnet",
+    "verify": "hardhat verify --network monad-testnet"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.4"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  }
+}
