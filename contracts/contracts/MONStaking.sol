@@ -200,7 +200,7 @@ contract MONStaking {
         uint256 _totalStaked,
         uint256 _totalStakers
     ) {
-        return (totalStaked, _totalStakers);
+        return (totalStaked, totalStakers);
     }
 
     receive() external payable {

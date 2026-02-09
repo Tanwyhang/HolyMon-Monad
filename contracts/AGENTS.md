@@ -7,23 +7,25 @@
 ### Smart Contract Development
 - Use Solidity ^0.8.20+
 - Follow OpenZeppelin standards for ERC20 implementation
-- Write comprehensive tests with pytest
-- Use APE Framework for deployment and testing
+- Write comprehensive tests with Hardhat
+- Use Hardhat Framework for deployment and testing
 
 ### Package Management
 - **ALWAYS USE `bun` FOR ALL PACKAGE MANAGEMENT AND SCRIPT EXECUTION**
 - **NEVER USE `npm` OR `pnpm`** - only bun is allowed
 - Use `bun install` for dependencies
-- Use `bun run <script>` for scripts in package.json
+- Use `bun run <script>` or `hardhat <command>` for scripts in package.json
 
 ### Testing
 - Write tests for all contract functions
 - Test edge cases and failure scenarios
-- Use pytest with clear test names
+- Use Hardhat test with Mocha/Chai
+- Write tests in JavaScript or TypeScript in the `test/` directory
 - Mock external dependencies when needed
 
 ### Deployment
-- Always test on Monad testnet first
+- Always test on local Hardhat network first
+- Test on Monad testnet before production
 - Verify contract deployment on explorers
 - Keep track of deployed addresses in `deployed_addresses.txt`
 - Use environment variables for sensitive data

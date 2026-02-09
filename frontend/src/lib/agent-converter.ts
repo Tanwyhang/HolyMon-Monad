@@ -85,7 +85,7 @@ export function toElizaCharacter(agent: HolyMonAgent): Character {
   const character: Character = {
     id: agent.id as UUID,
     name: agent.name,
-    username: agent.elizaos?.username || agent.slug.toLowerCase(),
+    username: agent.elizaos?.username || agent.symbol.toLowerCase(),
     system: agent.prompt,
     bio: agent.backstory,
     settings: {

@@ -1,6 +1,6 @@
 # HolyMon Smart Contracts
 
-Smart contracts for the HolyMon platform, built with APE Framework.
+Smart contracts for the HolyMon platform, built with Hardhat.
 
 ## Contracts
 
@@ -38,28 +38,23 @@ Native MON staking with tiered multipliers.
 ## Setup
 
 ### Prerequisites
-- Python 3.10+
-- Conda or venv
-- APE Framework
+- Node.js 18+
+- Bun (for package management)
+- Hardhat (installed via bun)
 
 ### Installation
 
 ```bash
-# Create conda environment
-conda create -n ape python=3.12 -y
-conda activate ape
-
-# Install APE with recommended plugins
-pip install eth-ape"[recommended-plugins]"
+# Install dependencies
+bun install
 ```
 
 ### Environment
 
-Create a `.env` file in the contracts directory:
+Create a `.env` file in contracts directory:
 
 ```env
 # For Monad testnet deployment
-MONAD_TESTNET_RPC=https://testnet-rpc.monad.xyz
 MONAD_TESTNET_PRIVATE_KEY=your_private_key_here
 ```
 
@@ -68,27 +63,43 @@ MONAD_TESTNET_PRIVATE_KEY=your_private_key_here
 ### Compile Contracts
 
 ```bash
-source /Users/wy/miniconda3/etc/profile.d/conda.sh
-conda activate ape
-ape compile
+bun run compile
+# or
+hardhat compile
 ```
 
 ### Run Tests
 
 ```bash
-ape test
+bun run test
+# or
+hardhat test
+```
+
+### Deploy to Local Network
+
+```bash
+# Start local node in another terminal
+hardhat node
+
+# Deploy contracts
+bun run deploy
+# or
+hardhat run scripts/deploy.js --network localhost
 ```
 
 ### Deploy to Monad Testnet
 
 ```bash
-ape run deploy --network monad-testnet
+bun run deploy --network monad-testnet
+# or
+hardhat run scripts/deploy.js --network monad-testnet
 ```
 
 ### Interactive Console
 
 ```bash
-ape console --network monad-testnet
+hardhat console --network monad-testnet
 ```
 
 ## Development
@@ -103,19 +114,42 @@ contracts/
 │   ├── MONStaking.sol
 │   └── IERC20.sol
 ├── scripts/            # Deployment scripts
-│   └── deploy.py
-├── tests/              # Test files
-│   └── test_contracts.py
-├── ape-config.yaml     # APE configuration
+│   └── deploy.js
+├── test/               # Test files
+│   └── HolyMon.test.js
+├── hardhat.config.js   # Hardhat configuration
 └── README.md           # This file
 ```
 
 ### Network Configuration
 
-Default network: Monad Testnet
-- Chain ID: 14314
+Default network: Hardhat (local)
+- Chain ID: 1337
+- RPC: http://127.0.0.1:8545
+
+Monad Testnet:
+- Chain ID: 10143
 - RPC: https://testnet-rpc.monad.xyz
-- Explorers: monadvision.com, monadscan.com
+- Explorer: https://testnet.monadscan.com
+
+### Writing Tests
+
+Tests are written using Hardhat's Mocha/Chai framework:
+
+```javascript
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
+
+describe("MyContract", function () {
+  it("Should do something", async function () {
+    const [owner] = await ethers.getSigners();
+    const Contract = await ethers.getContractFactory("MyContract");
+    const contract = await Contract.deploy();
+
+    expect(await contract.someFunction()).to.equal(expectedValue);
+  });
+});
+```
 
 ## License
 

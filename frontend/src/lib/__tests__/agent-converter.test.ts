@@ -123,7 +123,7 @@ describe("Agent Converter", () => {
     const character = toElizaCharacter(basicAgent);
     expect(character).toBeDefined();
     expect(character.name).toBe("Test Agent");
-    expect(character.username).toBe("testagent"); // Should use lowercase slug
+    expect(character.username).toBe("tstag"); // Should use lowercase symbol
     expect(character.plugins).toEqual(["@elizaos/plugin-sql"]); // Default plugin
   });
 });

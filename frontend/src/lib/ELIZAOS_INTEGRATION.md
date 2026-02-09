@@ -107,7 +107,7 @@ Converts a HolyMon agent to ElizaOS Character.
 
 - `agent.id` → `character.id` (as UUID)
 - `agent.name` → `character.name`
-- `agent.symbol` → `character.username` (lowercase)
+- `agent.symbol` → `character.username` (lowercase, or from `agent.elizaos.username` if provided)
 - `agent.prompt` → `character.system`
 - `agent.backstory` → `character.bio`
 - HolyMon fields → `character.settings.holyMonData`
