@@ -1,0 +1,25 @@
+{
+  "name": "monad-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Monad Testnet",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/index.js",
+    "dev": "tsc --watch"
+  },
+  "keywords": ["mcp", "monad", "blockchain"],
+  "author": "",
+  "license": "ISC",
+
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "viem": "^2.45.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.2",
+    "typescript": "^5.9.3"
+  }
+}
