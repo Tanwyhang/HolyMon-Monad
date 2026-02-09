@@ -1,5 +1,5 @@
 import type { APIResponse, StakingTier, UserStakeInfo } from '../types';
-import { contractService } from './contract.service';
+import { contractService } from '../services/contract.service';
 
 export async function handleGetTiers(): Promise<APIResponse<{ tiers: StakingTier[] }>> {
   try {

@@ -11,6 +11,14 @@ import {
   handleEnableStaking,
   handleGetServicesStatus,
 } from './routes/holymon-services';
+import {
+  handleGetTiers,
+  handleGetUserStake,
+  handleGetGlobalStats,
+  handleStake,
+  handleUnstake,
+  handleClaimRewards,
+} from './routes/staking';
 
 console.log('[Backend] Starting HolyMon backend service...');
 
