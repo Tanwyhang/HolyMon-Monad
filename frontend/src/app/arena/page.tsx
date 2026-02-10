@@ -168,9 +168,11 @@ export default function Arena() {
                       </div>
                     </div>
 
-                    <button className="w-full py-2 border border-neutral-700 hover:border-[#836EF9] hover:bg-[#836EF9]/10 text-sm font-bold uppercase tracking-wider transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)]">
-                      View Bracket
-                    </button>
+                    <Link href="/tournament-arena" className="block w-full">
+                      <button className="w-full py-2 bg-[#836EF9] hover:bg-[#6b55d7] text-white text-sm font-bold uppercase tracking-wider transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)]">
+                        🎮 Enter 3D Arena
+                      </button>
+                    </Link>
                   </div>
                 ))}
               </div>

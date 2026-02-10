@@ -30,11 +30,35 @@ try {
   process.exit(1);
 }
 
+import { tournamentService } from './services/tournament.service';
+
 const server = Bun.serve({
   port: config.server.port,
-  async fetch(req) {
+  websocket: {
+    open(ws) {
+      console.log('[WS] Client connected');
+      tournamentService.registerClient(ws);
+    },
+    message(ws, message) {
+      // Handle client messages (e.g., user cheering)
+      console.log('[WS] Received:', message);
+    },
+    close(ws) {
+      console.log('[WS] Client disconnected');
+      tournamentService.removeClient(ws);
+    },
+  },
+  async fetch(req, server) {
     const url = new URL(req.url);
     const path = url.pathname;
+    
+    // Upgrade to WebSocket
+    if (path === '/tournament/ws') {
+      const success = server.upgrade(req);
+      if (success) return undefined;
+      return new Response('WebSocket upgrade failed', { status: 400 });
+    }
+
     const method = req.method;
 
     console.log(`[${method}] ${path}`);
