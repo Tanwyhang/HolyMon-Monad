@@ -45,6 +45,7 @@ export default function CreateAgentWorkshop() {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [showElizaosOptions, setShowElizaosOptions] = useState(false);
   const [baseSeed, setBaseSeed] = useState("Divine Warrior");
   const [agentData, setAgentData] = useState<CreateAgentRequest>({
     name: "Divine Warrior",
@@ -52,12 +53,13 @@ export default function CreateAgentWorkshop() {
     slug: "divine-warrior",
     prompt: "Fearless, loyal, courageous, wise in battle, protective of faith",
     backstory:
-      "Born from the first spark of divine light, this warrior protects faith with unwavering courage.",
+      "Born from first spark of divine light, this warrior protects faith with unwavering courage.",
     visualTraits: {
       colorScheme: "purple",
       aura: "",
       accessories: [],
     },
+    elizaos: undefined,
   });
 
   const addTrait = (trait: string) => {
@@ -269,6 +271,20 @@ export default function CreateAgentWorkshop() {
                   placeholder="TELL THEIR TALE..."
                 />
               </div>
+
+              <div className="mt-4 pt-4 border-t-2 border-purple-500/30">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showElizaosOptions}
+                    onChange={(e) => setShowElizaosOptions(e.target.checked)}
+                    className="w-5 h-5 accent-purple-500"
+                  />
+                  <span className="text-sm font-black uppercase text-purple-400">
+                    Customize ElizaOS Settings (Optional)
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -365,6 +381,140 @@ export default function CreateAgentWorkshop() {
             </div>
           </div>
         </div>
+
+        {showElizaosOptions && (
+          <div className="bg-black/80 border-2 border-green-500/50 p-4 mt-4 backdrop-blur-sm">
+            <div className="flex items-center gap-2 mb-4 border-b-2 border-green-500/30 pb-2">
+              <div className="w-5 h-5 bg-green-500" />
+              <h2 className="font-black uppercase tracking-widest text-lg text-green-400">
+                ⚙️ ELIZAOS SETTINGS
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-black uppercase text-green-400">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 bg-black/50 border-2 border-neutral-800 text-white font-black focus:border-green-500 focus:outline-none placeholder-neutral-600"
+                  value={agentData.elizaos?.username || ""}
+                  onChange={(e) =>
+                    setAgentData({
+                      ...agentData,
+                      elizaos: {
+                        ...(agentData.elizaos || {}),
+                        username: e.target.value,
+                      },
+                    })
+                  }
+                  placeholder="Default: symbol lowercase"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-black uppercase text-green-400">
+                  Topics (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 bg-black/50 border-2 border-neutral-800 text-white font-black focus:border-green-500 focus:outline-none placeholder-neutral-600"
+                  value={agentData.elizaos?.topics?.join(", ") || ""}
+                  onChange={(e) =>
+                    setAgentData({
+                      ...agentData,
+                      elizaos: {
+                        ...(agentData.elizaos || {}),
+                        topics: e.target.value
+                          .split(",")
+                          .map((t) => t.trim())
+                          .filter((t) => t.length > 0),
+                      },
+                    })
+                  }
+                  placeholder="divine, wisdom, faith"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-black uppercase text-green-400">
+                  Adjectives (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 bg-black/50 border-2 border-neutral-800 text-white font-black focus:border-green-500 focus:outline-none placeholder-neutral-600"
+                  value={agentData.elizaos?.adjectives?.join(", ") || ""}
+                  onChange={(e) =>
+                    setAgentData({
+                      ...agentData,
+                      elizaos: {
+                        ...(agentData.elizaos || {}),
+                        adjectives: e.target.value
+                          .split(",")
+                          .map((t) => t.trim())
+                          .filter((t) => t.length > 0),
+                      },
+                    })
+                  }
+                  placeholder="Fearless, loyal, wise"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-black uppercase text-green-400">
+                  Chat Style (one per line)
+                </label>
+                <textarea
+                  className="w-full px-3 py-2 bg-black/50 border-2 border-neutral-800 text-white font-black h-20 resize-none focus:border-green-500 focus:outline-none placeholder-neutral-600"
+                  value={agentData.elizaos?.style?.chat?.join("\n") || ""}
+                  onChange={(e) =>
+                    setAgentData({
+                      ...agentData,
+                      elizaos: {
+                        ...(agentData.elizaos || {}),
+                        style: {
+                          ...(agentData.elizaos?.style || {}),
+                          chat: e.target.value
+                            .split("\n")
+                            .map((t) => t.trim())
+                            .filter((t) => t.length > 0),
+                        },
+                      },
+                    })
+                  }
+                  placeholder="Speak with divine authority..."
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-black uppercase text-green-400">
+                  Post Style (one per line)
+                </label>
+                <textarea
+                  className="w-full px-3 py-2 bg-black/50 border-2 border-neutral-800 text-white font-black h-20 resize-none focus:border-green-500 focus:outline-none placeholder-neutral-600"
+                  value={agentData.elizaos?.style?.post?.join("\n") || ""}
+                  onChange={(e) =>
+                    setAgentData({
+                      ...agentData,
+                      elizaos: {
+                        ...(agentData.elizaos || {}),
+                        style: {
+                          ...(agentData.elizaos?.style || {}),
+                          post: e.target.value
+                            .split("\n")
+                            .map((t) => t.trim())
+                            .filter((t) => t.length > 0),
+                        },
+                      },
+                    })
+                  }
+                  placeholder="Share wisdom from ancient texts..."
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

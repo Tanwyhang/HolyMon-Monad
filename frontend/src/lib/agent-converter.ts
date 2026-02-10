@@ -81,7 +81,30 @@ function defaultTokenInfo() {
   };
 }
 
+function deriveAdjectivesFromPrompt(prompt: string): string[] {
+  return prompt
+    .split(/[,.]/)
+    .map((w) => w.trim())
+    .filter((w) => w.length > 2);
+}
+
+function deriveStyleFromAgent(agent: HolyMonAgent): {
+  chat?: string[];
+  post?: string[];
+} {
+  const traits = deriveAdjectivesFromPrompt(agent.prompt)
+    .slice(0, 3)
+    .join(", ");
+  return {
+    chat: [`Speak in a way that reflects: ${traits}`],
+    post: [`Share ${agent.name}'s perspective as: ${traits}`],
+  };
+}
+
 export function toElizaCharacter(agent: HolyMonAgent): Character {
+  const derivedAdjectives = deriveAdjectivesFromPrompt(agent.prompt);
+  const derivedStyle = deriveStyleFromAgent(agent);
+
   const character: Character = {
     id: agent.id as UUID,
     name: agent.name,
@@ -108,10 +131,14 @@ export function toElizaCharacter(agent: HolyMonAgent): Character {
     messageExamples: agent.elizaos?.messageExamples,
     postExamples: agent.elizaos?.postExamples,
     topics: agent.elizaos?.topics,
-    adjectives: agent.elizaos?.adjectives,
+    adjectives: agent.elizaos?.adjectives || derivedAdjectives,
     knowledge: agent.elizaos?.knowledge as any,
     plugins: agent.elizaos?.plugins || ["@elizaos/plugin-sql"],
-    style: agent.elizaos?.style,
+    style: {
+      all: agent.elizaos?.style?.all,
+      chat: agent.elizaos?.style?.chat || derivedStyle.chat,
+      post: agent.elizaos?.style?.post || derivedStyle.post,
+    },
   };
 
   return character;
