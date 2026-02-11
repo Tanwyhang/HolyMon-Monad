@@ -31,8 +31,18 @@ try {
 }
 
 import { tournamentService } from './services/tournament.service';
+import { elizaRuntimeService } from './services/eliza-runtime.service';
 
-const server = Bun.serve({
+async function startServer() {
+  try {
+    await elizaRuntimeService.initializeAgents();
+    console.log('[Backend] ElizaOS agents initialized');
+  } catch (error) {
+    console.error('[Backend] Failed to initialize ElizaOS agents:', error);
+    console.log('[Backend] Tournament will fall back to procedural dialogue');
+  }
+
+  Bun.serve({
   port: config.server.port,
   websocket: {
     open(ws) {
@@ -243,6 +253,8 @@ const server = Bun.serve({
   },
 });
 
+}
+
 function jsonResponse(data: any, status: number = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -283,3 +295,5 @@ console.log('  GET  /api/erc8004/discover');
 console.log('  POST /api/holymon/:tokenId/launch-token');
 console.log('  POST /api/holymon/:tokenId/stake-mon');
 console.log('  GET  /api/holymon/:tokenId/status');
+
+startServer();

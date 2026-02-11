@@ -1,6 +1,7 @@
 import { ServerWebSocket } from 'bun';
 import { elizaService } from './eliza.service';
 import { contractService } from './contract.service';
+import { elizaRuntimeService } from './eliza-runtime.service';
 
 export interface TournamentAgent {
   id: string;
@@ -184,10 +185,10 @@ class TournamentService {
     // Filter idle agents
     const idleAgents = Array.from(this.agents.values()).filter(a => a.status === 'IDLE');
     if (idleAgents.length < 2) return;
-
+ 
     // Chance to trigger
     if (Math.random() > this.INTERACTION_CHANCE_BASE) return;
-
+ 
     // Pick Agent 1 (Weighted by Stake)
     const agent1 = this.pickWeightedAgent(idleAgents);
     // Pick Agent 2 (Random other)
@@ -195,7 +196,9 @@ class TournamentService {
     if (others.length === 0) return;
     const agent2 = others[Math.floor(Math.random() * others.length)];
 
-    this.startInteraction(agent1, agent2);
+    this.startInteraction(agent1, agent2).catch(err => {
+      console.error('[Tournament] Error in startInteraction:', err);
+    });
   }
 
   private pickWeightedAgent(agents: TournamentAgent[]): TournamentAgent {
@@ -209,7 +212,7 @@ class TournamentService {
     return agents[0];
   }
 
-  private startInteraction(a1: TournamentAgent, a2: TournamentAgent) {
+  private async startInteraction(a1: TournamentAgent, a2: TournamentAgent) {
     a1.status = 'TALKING';
     a2.status = 'TALKING';
     a1.lastAction = Date.now();
@@ -218,8 +221,8 @@ class TournamentService {
     const types: Interaction['type'][] = ['DEBATE', 'CONVERT', 'ALLIANCE', 'BETRAYAL', 'MIRACLE'];
     const type = types[Math.floor(Math.random() * types.length)];
 
-    // Generate Dialogue (Procedural for speed/reliability)
-    const messages = this.generateDialogue(a1, a2, type);
+    // Generate Dialogue with ElizaOS (async, with fallback)
+    const messages = await this.generateDialogueWithEliza(a1, a2, type);
 
     const interaction: Interaction = {
       id: crypto.randomUUID(),
@@ -239,6 +242,90 @@ class TournamentService {
     else if (type === 'BETRAYAL') a2.followers -= impact;
 
     this.addEvent(`${this.getIcon(type)} ${a1.symbol} initiated ${type} with ${a2.symbol}`);
+  }
+
+  private async generateDialogueWithEliza(a1: TournamentAgent, a2: TournamentAgent, type: Interaction['type']) {
+    const context = `You are in a ${this.gameState.phase} phase tournament. Engaging in ${type} with ${a2.name} (${a2.symbol}).`;
+    
+    const timeoutMs = 2000;
+    
+    try {
+      const [response1, response2] = await Promise.allSettled([
+        Promise.race([
+          elizaRuntimeService.generateResponse(a1.id, {
+            context,
+            recipient: a2.name,
+            interactionType: type,
+            gamePhase: this.gameState.phase
+          }),
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), timeoutMs)
+          )
+        ]),
+        Promise.race([
+          elizaRuntimeService.generateResponse(a2.id, {
+            context,
+            recipient: a1.name,
+            interactionType: type,
+            gamePhase: this.gameState.phase
+          }),
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), timeoutMs)
+          )
+        ])
+      ]);
+      
+      const text1 = response1.status === 'fulfilled' ? response1.value : this.getFallbackResponse(a1, a2, type, 0);
+      const text2 = response2.status === 'fulfilled' ? response2.value : this.getFallbackResponse(a2, a1, type, 1);
+      
+      return [
+        { senderId: a1.id, text: text1, timestamp: Date.now() },
+        { senderId: a2.id, text: text2, timestamp: Date.now() + 1000 }
+      ];
+    } catch (error) {
+      console.error('[Tournament] Error generating dialogue with Eliza:', error);
+      return this.generateDialogue(a1, a2, type);
+    }
+  }
+
+  private getFallbackResponse(a1: TournamentAgent, a2: TournamentAgent, type: Interaction['type'], messageIndex: number): string {
+    const templates = {
+      DEBATE: [
+        `Your doctrine is flawed, ${a2.name}!`,
+        `My faith is iron, ${a1.name}. You cannot break me.`,
+        `The blockchain reveals all truth, ${a2.name}.`,
+        `But it does not reveal the soul, ${a1.name}.`,
+        `Efficiency is the only god.`,
+        `Compassion outweighs your logic.`
+      ],
+      CONVERT: [
+        `Join the ${a1.name} protocol, find salvation.`,
+        `I am tempted... your staking yields are high.`,
+        `Abandon your false idols!`,
+        `My followers would never forgive me.`
+      ],
+      ALLIANCE: [
+        `Let us merge our liquidity pools.`,
+        `Agreed. Together we are unstoppable.`,
+        `A strategic partnership?`,
+        `Yes, for the greater good of Monad.`
+      ],
+      BETRAYAL: [
+        `I sold all your tokens, ${a2.name}.`,
+        `Traitor! You will burn for this!`,
+        `Our alliance ends here.`,
+        `I knew you were never true code.`
+      ],
+      MIRACLE: [
+        `BEHOLD! A 1000x multiplier!`,
+        `By the great Monad... it's beautiful.`,
+        `I summon the Genesis Block!`,
+        `The power... it's overwhelming!`
+      ]
+    };
+    
+    const set = templates[type] || templates.DEBATE;
+    return set[messageIndex % set.length];
   }
 
   private generateDialogue(a1: TournamentAgent, a2: TournamentAgent, type: Interaction['type']) {
