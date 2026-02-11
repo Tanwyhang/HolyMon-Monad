@@ -17,7 +17,7 @@ This file contains project-specific configuration and preferences for Claude Cod
 
 This is a production-ready Next.js application for integrating with ElizaOS agents, featuring real-time messaging, proper agent participation management, and comprehensive error handling. The project serves a dual purpose:
 
-1. **Next.js Web Application**: Real-time chat interface running on port 4000
+1. **Next.js Web Application**: Real-time chat interface running on port 3000
 2. **ElizaOS Agent Package**: Buildable agent with custom plugins
 
 ### Key Features
@@ -71,7 +71,7 @@ This is a production-ready Next.js application for integrating with ElizaOS agen
 
 ### Development Workflow
 - **DUAL BUILD SYSTEM:** Project builds both Next.js app and ElizaOS agent
-- **PORT CONFIGURATION:** Next.js runs on port 4000, ElizaOS server on port 3000
+- **PORT CONFIGURATION:** Next.js runs on port 3000, ElizaOS server on port 4000
 - **ENVIRONMENT SETUP:** Always check `.env` file for proper configuration
 - **CONCURRENT DEVELOPMENT:** Use `bun run dev:with-agent` for full stack development
 
@@ -94,9 +94,9 @@ This is a production-ready Next.js application for integrating with ElizaOS agen
 
 ```bash
 # Development
-bun run dev                    # Next.js only (port 4000)
+bun run dev                    # Next.js only (port 3000)
 bun run dev:with-agent        # Both ElizaOS agent and Next.js concurrently
-bun start                     # Production mode (port 4000)
+bun start                     # Production mode (port 3000)
 
 # Building
 bun run build                 # Build both agent and Next.js app
@@ -155,8 +155,8 @@ src/
 ### Required Variables
 ```env
 # Next.js Configuration
-NEXT_PUBLIC_APP_URL=http://localhost:4000
-NEXT_PUBLIC_SERVER_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_SERVER_URL=http://localhost:4000
 NEXT_TELEMETRY_DISABLED=true
 NEXT_PUBLIC_NODE_ENV="development"
 
