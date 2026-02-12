@@ -71,8 +71,8 @@ export default function CreateAgentWorkshop() {
   };
 
   const mintAgent = async () => {
-    if (!agentData.name || !agentData.symbol || !agentData.slug) {
-      setCreateError("Name, symbol, and slug required");
+    if (!agentData.name || !agentData.symbol) {
+      setCreateError("Name and symbol required");
       return;
     }
 
