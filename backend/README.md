@@ -57,7 +57,7 @@ bun install
 
 ### Environment Configuration
 
-Create a `.env` file in the backend directory:
+Create a `.env` file in backend directory:
 
 ```env
 # Monad Network Configuration
@@ -66,19 +66,16 @@ CHAIN_ID=31337  # Local: 31337, Testnet: 10143
 PRIVATE_KEY=your_private_key_here
 
 # Contract Addresses (after deployment)
+AGENT_REGISTRY_ADDRESS=0x...
 TOKEN_LAUNCHPAD_ADDRESS=0x...
 MON_STAKING_ADDRESS=0x...
-
-# Walrus Storage
-WALRUS_PUBLISHER=https://publisher.testnet.walrus.space
-WALRUS_AGGREGATOR=https://aggregator.testnet.walrus.space
 
 # ElizaOS (optional)
 OPENAI_API_KEY=your_openai_key
 ELIZAOS_MODEL_PROVIDER=openai
 
 # Server
-PORT=3001
+PORT=8765
 NODE_ENV=development
 API_KEY=your_api_key
 ```
@@ -112,28 +109,27 @@ bun run start
 - `POST /api/holymon/:tokenId/stake-mon` - Enable MON staking
 - `GET /api/holymon/:tokenId/status` - Get HolyMon service status
 
-### Legacy Endpoints (Deprecated)
-- `POST /api/agents` - Create HolyMon agent (use ERC-8004)
-- `GET /api/agents/:id` - Get HolyMon agent (use ERC-8004)
-- `POST /api/tokens/deploy` - Deploy token (use HolyMon services)
-- `POST /api/staking/stake` - Stake MON (use HolyMon services)
+### Agent Registry
+- `POST /api/agents` - Create HolyMon agent (AgentRegistry contract)
+- `GET /api/agents/:id` - Get agent by ID
+- `GET /api/agents?owner=0x...` - Get agents by owner
 
 ## Agent Tracking
 
 Users track their agents through **ERC-8004 Identity Registry ownership**:
 
 1. **ERC-8004 Token Ownership**
-   - Agents are ERC-721 tokens in the ERC-8004 Identity Registry
-   - Ownership is tracked on-chain: `ownerOf(tokenId)`
-   - Users query agents they own by their wallet address
+    - Agents are ERC-721 tokens in the ERC-8004 Identity Registry
+    - Ownership is tracked on-chain: `ownerOf(tokenId)`
+    - Users query agents they own by their wallet address
 
 2. **Agent Discovery**
-   - `GET /api/erc8004/discover?owner=0x...` - Find all agents owned by an address
-   - Returns array of ERC-8004 token IDs owned by the user
+    - `GET /api/erc8004/discover?owner=0x...` - Find all agents owned by an address
+    - Returns array of ERC-8004 token IDs owned by user
 
 3. **Service Status Tracking**
-   - `GET /api/holymon/:tokenId/status` - Check HolyMon services for each agent
-   - Agent cards store HolyMon service metadata (tokens, staking, etc.)
+    - `GET /api/holymon/:tokenId/status` - Check HolyMon services for each agent
+    - Agent cards store HolyMon service metadata (tokens, staking, etc.)
 
 ### Frontend Implementation Example
 
@@ -143,17 +139,17 @@ const userAgents = await fetch(`/api/erc8004/discover?owner=${userAddress}`);
 
 // For each agent, get HolyMon service status
 const agentStatuses = await Promise.all(
-  userAgents.map(agent =>
-    fetch(`/api/holymon/${agent.tokenId}/status`)
-  )
-);
+   userAgents.map(agent =>
+     fetch(`/api/holymon/${agent.tokenId}/status`)
+   )
+ );
 ```
 
 ## Architecture
 
 ### Core Services
 
-- **ContractService** - Blockchain contract interactions (TokenLaunchpad, MONStaking)
+- **ContractService** - Blockchain contract interactions (AgentRegistry, TokenLaunchpad, MONStaking)
 - **ERC8004Service** - ERC-8004 registry integration and agent card management
 - **Route Handlers** - HTTP request handling and response formatting
 
@@ -175,7 +171,7 @@ const agentStatuses = await Promise.all(
 
 ### Local Development
 ```bash
-bun run dev  # Starts on http://localhost:3001
+bun run dev  # Starts on http://localhost:8765
 ```
 
 ### Production
@@ -189,7 +185,7 @@ bun run start
 FROM oven/bun:latest
 COPY . .
 RUN bun install
-EXPOSE 3001
+EXPOSE 8765
 CMD ["bun", "run", "start"]
 ```
 

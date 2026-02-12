@@ -1,6 +1,12 @@
 import { config, validateConfig } from './config/env';
 import { handleHealthCheck } from './routes/health';
 import {
+  handleCreateAgent,
+  handleGetAgent,
+  handleListAgents,
+  handleGetAgentMetadata,
+} from './routes/agents';
+import {
   handleGetERC8004Agent,
   handleGetAgentReputation,
   handleSubmitFeedback,
@@ -86,11 +92,6 @@ async function startServer() {
 
       if (path.startsWith('/api/agents/') && method === 'GET') {
         const agentId = path.split('/')[3];
-        
-        if (path.includes('/metadata')) {
-          return jsonResponse(await handleGetAgentMetadata(agentId));
-        }
-        
         return jsonResponse(await handleGetAgent(agentId));
       }
 
@@ -270,10 +271,9 @@ function jsonResponse(data: any, status: number = 200): Response {
 console.log(`[Backend] Server running on http://localhost:${config.server.port}`);
 console.log('[Backend] Available endpoints:');
 console.log('  GET  /health');
-console.log('  POST /api/agents (deprecated - use ERC-8004)');
-console.log('  GET  /api/agents/:id (deprecated - use ERC-8004)');
-console.log('  GET  /api/agents?owner=0x... (deprecated - use ERC-8004)');
-console.log('  GET  /api/agents/:id/metadata (deprecated - use ERC-8004)');
+console.log('  POST /api/agents');
+console.log('  GET  /api/agents/:id');
+console.log('  GET  /api/agents?owner=0x...');
 console.log('  POST /api/tokens/deploy (deprecated - use HolyMon services)');
 console.log('  GET  /api/tokens/:address');
 console.log('  GET  /api/tokens/agent/:agentId (deprecated)');

@@ -120,15 +120,39 @@ class ERC8004Service {
         args: [tokenId],
       });
 
+      const totalFeedback = reputation[0] as bigint;
+      const averageScore = Number(reputation[1]) / 100;
+      const tags = reputation[2] as string[];
+      
+      const isValidReputation = 
+        totalFeedback !== 0n || 
+        averageScore !== 0 || 
+        (tags && tags.length > 0);
+
       return {
         agentId: tokenId,
-        totalFeedback: reputation[0] as bigint,
-        averageScore: Number(reputation[1]) / 100, // Assuming score is stored as uint256 with 2 decimals
-        tags: reputation[2] as string[],
-        exists: true,
+        totalFeedback,
+        averageScore,
+        tags,
+        exists: isValidReputation,
       };
     } catch (error) {
       console.error('[ERC8004] Error fetching agent reputation:', error);
+      
+      // Check if it's a revert error (token not found)
+      if (error instanceof Error && (
+        error.message.includes('call revert') ||
+        error.message.includes('execution reverted')
+      )) {
+        return {
+          agentId: tokenId,
+          totalFeedback: 0n,
+          averageScore: 0,
+          tags: [],
+          exists: false,
+        };
+      }
+      
       return {
         agentId: tokenId,
         totalFeedback: 0n,

@@ -8,9 +8,12 @@
     "dev": "bun --hot src/index.ts",
     "start": "bun src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",
-    "test": "bun test"
+    "test": "bun test",
+    "test:eliza": "bun test-eliza-integration.ts"
   },
   "dependencies": {
+    "@elizaos/core": "^1.7.2",
+    "@elizaos/plugin-groq": "^1.0.4",
     "viem": "^2.21.54",
     "zod": "^3.24.2"
   },

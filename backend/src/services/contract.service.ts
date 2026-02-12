@@ -31,9 +31,73 @@ const walletClient = createWalletClient({
 
 export class ContractService {
   constructor(
+    private agentRegistryAddress: Address,
     private tokenLaunchpadAddress: Address,
     private monStakingAddress: Address,
   ) {}
+
+  async createAgent(
+    name: string,
+    symbol: string,
+    prompt: string,
+    metadataURI: string,
+  ): Promise<{ agentId: string; txHash: string }> {
+    const hash = await walletClient.writeContract({
+      address: this.agentRegistryAddress,
+      abi: agentRegistryABI,
+      functionName: 'createAgent',
+      args: [name, symbol, prompt, metadataURI],
+    });
+
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+    const agentId = receipt.logs
+      .filter((log) => log.address === this.agentRegistryAddress)
+      .map((log) => {
+        const decoded = publicClient.abiDecodeLog({
+          abi: agentRegistryABI,
+          eventName: 'AgentCreated',
+          data: log.data,
+          topics: log.topics,
+        });
+        return decoded?.agentId;
+      })[0]?.toString() || '0';
+
+    return { agentId, txHash: hash };
+  }
+
+  async getAgent(agentId: string): Promise<any> {
+    const agent = await publicClient.readContract({
+      address: this.agentRegistryAddress,
+      abi: agentRegistryABI,
+      functionName: 'getAgent',
+      args: [BigInt(agentId)],
+    });
+
+    if (!agent.exists) {
+      return null;
+    }
+
+    return {
+      id: agent.id.toString(),
+      owner: agent.owner,
+      name: agent.name,
+      symbol: agent.symbol,
+      prompt: agent.prompt,
+      metadataURI: agent.metadataURI,
+    };
+  }
+
+  async getUserAgents(owner: Address): Promise<string[]> {
+    const agentIds = await publicClient.readContract({
+      address: this.agentRegistryAddress,
+      abi: agentRegistryABI,
+      functionName: 'getAgentsByOwner',
+      args: [owner],
+    });
+
+    return (agentIds as bigint[]).map((id) => id.toString());
+  }
 
   /**
    * Deploy token for ERC-8004 agent
@@ -286,6 +350,50 @@ const tokenLaunchpadABI = [
   },
 ] as const;
 
+const agentRegistryABI = [
+  {
+    inputs: [
+      { internalType: 'string', name: '_name', type: 'string' },
+      { internalType: 'string', name: '_symbol', type: 'string' },
+      { internalType: 'string', name: '_prompt', type: 'string' },
+      { internalType: 'string', name: '_metadataURI', type: 'string' },
+    ],
+    name: 'createAgent',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '_agentId', type: 'uint256' }],
+    name: 'getAgent',
+    outputs: [
+      {
+        components: [
+          { internalType: 'uint256', name: 'id', type: 'uint256' },
+          { internalType: 'address', name: 'owner', type: 'address' },
+          { internalType: 'string', name: 'name', type: 'string' },
+          { internalType: 'string', name: 'symbol', type: 'string' },
+          { internalType: 'string', name: 'prompt', type: 'string' },
+          { internalType: 'string', name: 'metadataURI', type: 'string' },
+          { internalType: 'bool', name: 'exists', type: 'bool' },
+        ],
+        internalType: 'struct AgentRegistry.Agent',
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '_owner', type: 'address' }],
+    name: 'getAgentsByOwner',
+    outputs: [{ internalType: 'uint256[]', name: '', type: 'uint256[]' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const;
+
 const monStakingABI = [
   {
     inputs: [{ internalType: 'uint256', name: '_amount', type: 'uint256' }],
@@ -352,8 +460,9 @@ const monStakingABI = [
 ] as const;
 
 export const contractService = new ContractService(
+  config.contracts.agentRegistry as Address,
   config.contracts.tokenLaunchpad as Address,
-  config.contracts.monStaking as Address,
+  config.monStaking as Address,
 );
 
 // Export publicClient for use by other services

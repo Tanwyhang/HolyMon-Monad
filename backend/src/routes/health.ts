@@ -14,10 +14,6 @@ export function handleHealthCheck(): APIResponse {
         tokenLaunchpad: config.contracts.tokenLaunchpad || 'Not deployed',
         monStaking: config.contracts.monStaking || 'Not deployed',
       },
-      walrus: {
-        publisher: config.walrus.publisher,
-        aggregator: config.walrus.aggregator,
-      },
       elizaos: {
         initialized: true,
         modelProvider: config.elizaos.modelProvider,

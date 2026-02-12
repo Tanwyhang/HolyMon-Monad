@@ -1,6 +1,5 @@
 import type { APIResponse, CreateAgentRequest, CreateAgentResponse, ErrorResponse } from '../types';
 import { agentService } from '../services/agent.service';
-import { walrusService } from './walrus.service';
 
 export async function handleCreateAgent(body: any, owner: string): Promise<APIResponse<CreateAgentResponse>> {
   try {
@@ -124,40 +123,3 @@ export async function handleListAgents(owner?: string): Promise<APIResponse> {
   }
 }
 
-export async function handleGetAgentMetadata(agentId: string): Promise<APIResponse> {
-  try {
-    const agent = await agentService.getAgent(agentId);
-
-    if (!agent) {
-      return {
-        success: false,
-        error: 'NOT_FOUND',
-        message: 'Agent not found',
-      };
-    }
-
-    const blobId = agent.metadataURI.split('/').pop();
-    if (!blobId) {
-      return {
-        success: false,
-        error: 'STORAGE_ERROR',
-        message: 'Invalid metadata URI',
-      };
-    }
-
-    const metadata = await walrusService.getMetadata(blobId);
-
-    return {
-      success: true,
-      data: metadata,
-    };
-  } catch (error) {
-    console.error('[Agents Routes] Get metadata error:', error);
-    return {
-      success: false,
-      error: 'STORAGE_ERROR',
-      message: 'Failed to fetch metadata',
-      details: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
-}

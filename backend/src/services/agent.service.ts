@@ -1,6 +1,5 @@
 import type { CreateAgentRequest, CreateAgentResponse, Agent } from '../types';
 import { contractService } from './contract.service';
-import { walrusService } from './walrus.service';
 import { elizaService } from './eliza.service';
 
 export class AgentService {
@@ -22,8 +21,7 @@ export class AgentService {
         createdAt: Date.now(),
       };
 
-      const { blobId } = await walrusService.uploadMetadata(metadata);
-      const metadataURI = await walrusService.getMetadataURI(blobId);
+      const metadataURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
 
       const { agentId, txHash } = await contractService.createAgent(
         request.name,
@@ -49,7 +47,6 @@ export class AgentService {
         agentId,
         agent,
         txHash,
-        metadataBlobId: blobId,
       };
     } catch (error) {
       console.error('[AgentService] Create agent error:', error);
@@ -95,20 +92,6 @@ export class AgentService {
     } catch (error) {
       console.error('[AgentService] Get user agents error:', error);
       return [];
-    }
-  }
-
-  async updateAgent(agentId: string, metadata: any): Promise<{ txHash: string; blobId: string }> {
-    try {
-      const { blobId } = await walrusService.uploadMetadata(metadata);
-      const metadataURI = await walrusService.getMetadataURI(blobId);
-
-      const hash = await contractService.updateAgentMetadata(agentId, metadataURI);
-
-      return { txHash: hash, blobId };
-    } catch (error) {
-      console.error('[AgentService] Update agent error:', error);
-      throw new Error(`Failed to update agent: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }

@@ -48,25 +48,39 @@ export async function handleGetAgentReputation(tokenId: string): Promise<APIResp
   try {
     const tokenIdBigInt = BigInt(tokenId);
     const reputation = await erc8004Service.getAgentReputation(tokenIdBigInt);
-
+    
+    if (!reputation.exists) {
+      return {
+        success: false,
+        error: 'NOT_FOUND',
+        message: `ERC-8004 agent reputation not found for token ID ${tokenId}`,
+      };
+    }
+    
     return {
       success: true,
       data: reputation,
     };
   } catch (error) {
     console.error('[ERC8004 Routes] Get reputation error:', error);
+    
+    if (error instanceof Error && error.message.includes('call revert')) {
+      return {
+        success: false,
+        error: 'NOT_FOUND',
+        message: `Token ID ${tokenId} not found in reputation registry`,
+      };
+    }
+    
     return {
       success: false,
       error: 'INTERNAL_ERROR',
-      message: 'Failed to fetch agent reputation',
+      message: 'Failed to fetch ERC-8004 agent reputation',
       details: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }
 
-/**
- * Submit feedback for an agent
- */
 export async function handleSubmitFeedback(
   tokenId: string,
   body: any,
