@@ -8,6 +8,8 @@
 dist/
 build/
 out/
+.next/
+
 
 # Node modules
 node_modules/
@@ -34,8 +36,14 @@ yarn-error.log*
 .cache/
 .cache-loader/
 .parcel-cache/
+.turbo/
+
 
 # Misc
 *.pid
 *.seed
 *.pid.lock
+plan
+
+# ElizaOS database
+.elizadb

@@ -49,17 +49,19 @@ db*
 
 # xata
 .xata
+
 # clerk configuration (can include secrets)
 /.clerk/
 
-
 dist/
-.env
-node_modules/
 cache/
 ./data/
 ./models/
 elizaos/
 .elizadb/
 
+# Lock files
 bun.lock
+
+# Deployment
+vercel.json
