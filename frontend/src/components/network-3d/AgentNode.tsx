@@ -45,12 +45,12 @@ export function AgentNode({ agent, positionRef, isLeader }: AgentNodeProps) {
 
     // 2. Animate Main Agent (Pulse)
     if (agent.status === 'TALKING' && meshRef.current && glowRef.current) {
-      meshRef.current.material.emissiveIntensity = 1.5 + Math.sin(time * 10) * 0.5;
-      glowRef.current.material.opacity = 0.3 + Math.sin(time * 10) * 0.1;
+      (meshRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity = 1.5 + Math.sin(time * 10) * 0.5;
+      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.3 + Math.sin(time * 10) * 0.1;
       groupRef.current.scale.lerp(new THREE.Vector3(1.2, 1.2, 1.2), 0.1);
     } else if (groupRef.current && meshRef.current && glowRef.current) {
-      meshRef.current.material.emissiveIntensity = 0.5;
-      glowRef.current.material.opacity = 0.15;
+      (meshRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.5;
+      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.15;
       groupRef.current.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
     }
 

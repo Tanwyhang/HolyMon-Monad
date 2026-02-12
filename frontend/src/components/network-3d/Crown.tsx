@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Cylinder, Torus } from '@react-three/drei';
+import * as THREE from 'three';
 
 export function Crown({ position }: { position: [number, number, number] }) {
   const groupRef = useRef<THREE.Group>(null);
