@@ -6,6 +6,7 @@ import type {
 } from "@/types/agent";
 import { assert } from "@/utils/assert";
 import type { Character } from "@elizaos/core";
+import { toElizaCharacter } from "@/lib/agent-converter";
 
 // Use Next.js API proxy to avoid CORS issues
 const API_PREFIX = "/api/eliza";
@@ -605,14 +606,83 @@ export const createHolyMonAgent = async (
   request: CreateAgentRequest,
 ): Promise<CreateAgentResponse> => {
   try {
-    const response = await fetch(`${AGENT_API_PREFIX}/create`, {
+    const response = await fetch("/api/backend-proxy/agents", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
     });
 
     const data = await response.json();
-    return data as CreateAgentResponse;
+    if (!data.success) {
+      return {
+        success: false,
+        error: data.message || data.error || "Failed to create agent",
+      };
+    }
+
+    const result = data.data;
+    if (!result || !result.agent) {
+      return {
+        success: false,
+        error: "Invalid response from backend",
+      };
+    }
+
+    const backendAgent = result.agent;
+    let metadata: any = {};
+    if (backendAgent.metadataURI.startsWith("data:application/json;base64,")) {
+      const base64 = backendAgent.metadataURI.split(",")[1];
+      metadata = JSON.parse(atob(base64));
+    }
+
+    const agent: HolyMonAgent = {
+      id: backendAgent.id,
+      owner: backendAgent.owner,
+      name: backendAgent.name,
+      symbol: backendAgent.symbol,
+      slug: backendAgent.name.toLowerCase().replace(/\s+/g, "-"),
+      prompt: backendAgent.prompt,
+      backstory: metadata.backstory || "",
+      visualTraits: metadata.visualTraits || {},
+      tier: 1,
+      influence: 0,
+      staked: 0,
+      description: metadata.backstory?.substring(0, 100) + "..." || "",
+      createdAt: new Date(backendAgent.createdAt || Date.now()).toISOString(),
+      stats: {
+        totalBattles: 0,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        winRate: 0,
+      },
+      stakingInfo: {
+        currentStake: 0,
+        stakingTier: 1,
+        stakingTierName: "Initiate",
+        dailyRewards: 0,
+        totalEarned: 0,
+        multiplier: 1.0,
+      },
+      abilities: [
+        {
+          name: "Divine Voice",
+          description: "+5% to all persuasion attempts",
+          level: 1,
+          maxLevel: 10,
+          color: "green",
+        },
+      ],
+      token: {
+        deployed: false,
+      },
+      elizaos: metadata.elizaos || {},
+    };
+
+    return {
+      success: true,
+      agent,
+    };
   } catch (error) {
     console.error("[API Client] Error creating HolyMon agent:", error);
     return {
@@ -627,7 +697,9 @@ export const createHolyMonAgent = async (
  */
 export const getHolyMonAgents = async (): Promise<HolyMonAgent[]> => {
   try {
-    const response = await fetch(`${AGENT_API_PREFIX}/list`);
+    const response = await fetch(
+      `/api/backend-proxy/agents?owner=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266`,
+    );
 
     if (!response.ok) {
       console.error(
@@ -638,7 +710,61 @@ export const getHolyMonAgents = async (): Promise<HolyMonAgent[]> => {
     }
 
     const data = await response.json();
-    return data.success ? data.agents || [] : [];
+    if (!data.success || !data.data?.agents) {
+      return [];
+    }
+
+    return data.data.agents.map((agent: any) => {
+      let metadata: any = {};
+      if (agent.metadataURI.startsWith("data:application/json;base64,")) {
+        const base64 = agent.metadataURI.split(",")[1];
+        metadata = JSON.parse(atob(base64));
+      }
+
+      return {
+        id: agent.id,
+        owner: agent.owner,
+        name: agent.name,
+        symbol: agent.symbol,
+        slug: agent.name.toLowerCase().replace(/\s+/g, "-"),
+        prompt: agent.prompt,
+        backstory: metadata.backstory || "",
+        visualTraits: metadata.visualTraits || {},
+        tier: 1,
+        influence: 0,
+        staked: 0,
+        description: metadata.backstory?.substring(0, 100) + "..." || "",
+        createdAt: new Date(agent.createdAt || Date.now()).toISOString(),
+        stats: {
+          totalBattles: 0,
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          winRate: 0,
+        },
+        stakingInfo: {
+          currentStake: 0,
+          stakingTier: 1,
+          stakingTierName: "Initiate",
+          dailyRewards: 0,
+          totalEarned: 0,
+          multiplier: 1.0,
+        },
+        abilities: [
+          {
+            name: "Divine Voice",
+            description: "+5% to all persuasion attempts",
+            level: 1,
+            maxLevel: 10,
+            color: "green",
+          },
+        ],
+        token: {
+          deployed: false,
+        },
+        elizaos: metadata.elizaos || {},
+      };
+    });
   } catch (error) {
     console.error("[API Client] Error fetching HolyMon agents:", error);
     return [];
@@ -652,7 +778,7 @@ export const getHolyMonAgent = async (
   agentId: string,
 ): Promise<HolyMonAgent | null> => {
   try {
-    const response = await fetch(`${AGENT_API_PREFIX}/${agentId}`);
+    const response = await fetch(`/api/backend-proxy/agents/${agentId}`);
 
     if (!response.ok) {
       console.error(
@@ -663,7 +789,63 @@ export const getHolyMonAgent = async (
     }
 
     const data = await response.json();
-    return data.success ? data.agent || null : null;
+    if (!data.success || !data.data) {
+      return null;
+    }
+
+    const agent = data.data;
+
+    // Parse metadata from base64
+    let metadata: any = {};
+    if (agent.metadataURI.startsWith("data:application/json;base64,")) {
+      const base64 = agent.metadataURI.split(",")[1];
+      metadata = JSON.parse(atob(base64));
+    }
+
+    // Construct HolyMonAgent from backend data
+    return {
+      id: agent.id,
+      owner: agent.owner,
+      name: agent.name,
+      symbol: agent.symbol,
+      slug: agent.name.toLowerCase().replace(/\s+/g, "-"),
+      prompt: agent.prompt,
+      backstory: metadata.backstory || "",
+      visualTraits: metadata.visualTraits || {},
+      tier: 1,
+      influence: 0,
+      staked: 0,
+      description: metadata.backstory?.substring(0, 100) + "..." || "",
+      createdAt: new Date(agent.createdAt || Date.now()).toISOString(),
+      stats: {
+        totalBattles: 0,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        winRate: 0,
+      },
+      stakingInfo: {
+        currentStake: 0,
+        stakingTier: 1,
+        stakingTierName: "Initiate",
+        dailyRewards: 0,
+        totalEarned: 0,
+        multiplier: 1.0,
+      },
+      abilities: [
+        {
+          name: "Divine Voice",
+          description: "+5% to all persuasion attempts",
+          level: 1,
+          maxLevel: 10,
+          color: "green",
+        },
+      ],
+      token: {
+        deployed: false,
+      },
+      elizaos: metadata.elizaos || {},
+    };
   } catch (error) {
     console.error("[API Client] Error fetching HolyMon agent:", error);
     return null;
@@ -677,20 +859,79 @@ export const createHolyMonAgentAsCharacter = async (
   request: CreateAgentRequest,
 ): Promise<{ success: boolean; agent?: Character; error?: string }> => {
   try {
-    const response = await fetch(
-      `${AGENT_API_PREFIX}/create?format=character`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
+    const response = await fetch("/api/backend-proxy/agents", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify(request),
+    });
 
     const data = await response.json();
+    if (data.success && data.data?.agent) {
+      const agent = data.data.agent;
+
+      let metadata: any = {};
+      if (agent.metadataURI.startsWith("data:application/json;base64,")) {
+        const base64 = agent.metadataURI.split(",")[1];
+        metadata = JSON.parse(atob(base64));
+      }
+
+      const holyMonAgent: HolyMonAgent = {
+        id: agent.id,
+        owner: agent.owner,
+        name: agent.name,
+        symbol: agent.symbol,
+        slug: agent.name.toLowerCase().replace(/\s+/g, "-"),
+        prompt: agent.prompt,
+        backstory: metadata.backstory || "",
+        visualTraits: metadata.visualTraits || {},
+        tier: 1,
+        influence: 0,
+        staked: 0,
+        description: metadata.backstory?.substring(0, 100) + "..." || "",
+        createdAt: new Date(agent.createdAt || Date.now()).toISOString(),
+        stats: {
+          totalBattles: 0,
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          winRate: 0,
+        },
+        stakingInfo: {
+          currentStake: 0,
+          stakingTier: 1,
+          stakingTierName: "Initiate",
+          dailyRewards: 0,
+          totalEarned: 0,
+          multiplier: 1.0,
+        },
+        abilities: [
+          {
+            name: "Divine Voice",
+            description: "+5% to all persuasion attempts",
+            level: 1,
+            maxLevel: 10,
+            color: "green",
+          },
+        ],
+        token: {
+          deployed: false,
+        },
+        elizaos: metadata.elizaos || {},
+      };
+
+      const character = toElizaCharacter(holyMonAgent);
+
+      return {
+        success: true,
+        agent: character,
+      };
+    }
+
     return {
-      success: data.success,
-      agent: data.agent,
-      error: data.error,
+      success: false,
+      error: data.error || "Failed to create agent",
     };
   } catch (error) {
     console.error(
@@ -709,18 +950,8 @@ export const createHolyMonAgentAsCharacter = async (
  */
 export const getHolyMonAgentsAsCharacters = async (): Promise<Character[]> => {
   try {
-    const response = await fetch(`${AGENT_API_PREFIX}/list?format=character`);
-
-    if (!response.ok) {
-      console.error(
-        "[API Client] Failed to list HolyMon agents as Characters:",
-        response.statusText,
-      );
-      return [];
-    }
-
-    const data = await response.json();
-    return data.success ? data.agents || [] : [];
+    const agents = await getHolyMonAgents();
+    return agents.map((agent) => toElizaCharacter(agent));
   } catch (error) {
     console.error(
       "[API Client] Error fetching HolyMon agents as Characters:",
@@ -737,20 +968,11 @@ export const getHolyMonAgentAsCharacter = async (
   agentId: string,
 ): Promise<Character | null> => {
   try {
-    const response = await fetch(
-      `${AGENT_API_PREFIX}/${agentId}?format=character`,
-    );
-
-    if (!response.ok) {
-      console.error(
-        "[API Client] Failed to get HolyMon agent as Character:",
-        response.statusText,
-      );
+    const agent = await getHolyMonAgent(agentId);
+    if (!agent) {
       return null;
     }
-
-    const data = await response.json();
-    return data.success ? data.agent || null : null;
+    return toElizaCharacter(agent);
   } catch (error) {
     console.error(
       "[API Client] Error fetching HolyMon agent as Character:",

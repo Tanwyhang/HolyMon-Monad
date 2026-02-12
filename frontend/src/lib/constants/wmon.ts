@@ -1,12 +1,12 @@
 export const WMON_CONTRACT = {
-  address: "0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701" as const,
+  address: "0xFb8bf4c1CC7a94c73D209a149eA2AbEa852BC541" as const,
   decimals: 18,
   symbol: "WMON",
   name: "Wrapped Monad",
 } as const;
 
 export const STAKING_CONTRACT = {
-  address: "0x0000000000000000000000000000000000000000" as const,
+  address: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318" as const,
   decimals: 18,
 } as const;
 
