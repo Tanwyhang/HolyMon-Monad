@@ -5,7 +5,6 @@ export const NPC_BASE_PATHS = {
   unconverted: [
     '/3d/NPC - Unconverted 1.fbx',
     '/3d/NPC - Unconverted 2.fbx',
-    '/3d/NPC - Unconverted 3.fbx',
     '/3d/NPC - Unconverted 4.fbx',
     '/3d/NPC - Unconverted 5.fbx',
   ],
@@ -53,5 +52,5 @@ export const ALL_NPC_FBX_PATHS: string[] = [
   ...ALL_NPC_ANIMATION_PATHS,
 ];
 
-/** Number of base models in ALL_NPC_FBX_PATHS (indices 0–5); animations start at this index */
-export const NPC_FBX_BASE_COUNT = 6;
+/** Number of base models in ALL_NPC_FBX_PATHS (indices 0–4); animations start at this index */
+export const NPC_FBX_BASE_COUNT = 5;

@@ -3,7 +3,7 @@
 import { useAnimationContext } from './AnimationContext';
 
 export function AnimationControls() {
-  const { spawnNPC, triggerTalk, triggerSuccess, triggerFail, actionInProgress } = useAnimationContext();
+  const { spawnNPC, triggerTalk, triggerSuccess, triggerFail, triggerDeal, triggerPray, actionInProgress } = useAnimationContext();
 
   const buttons = [
     {
@@ -29,6 +29,18 @@ export function AnimationControls() {
       action: triggerFail,
       color: 'bg-red-600 hover:bg-red-700',
       borderColor: 'border-red-400',
+    },
+    {
+      label: 'Deal',
+      action: triggerDeal,
+      color: 'bg-amber-600 hover:bg-amber-700',
+      borderColor: 'border-amber-400',
+    },
+    {
+      label: 'Pray',
+      action: triggerPray,
+      color: 'bg-cyan-600 hover:bg-cyan-700',
+      borderColor: 'border-cyan-400',
     },
   ];
 

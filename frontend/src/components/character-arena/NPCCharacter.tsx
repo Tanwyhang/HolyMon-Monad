@@ -4,6 +4,7 @@ import { useRef, useMemo, useEffect, useState } from 'react';
 import { useFrame, useLoader } from '@react-three/fiber';
 import { FBXLoader } from 'three-stdlib';
 import * as THREE from 'three';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import type { Triple } from '@react-three/fiber';
 import type { NPCInstance } from './types';
 import {
@@ -71,13 +72,24 @@ export function NPCCharacter({ instance, position = [0, 0, 0], scale = 1 }: NPCC
 
   // Use preloaded FBX cache (same as NpcPreload) so spawn never suspends or flickers
   const allFbxs = useLoader(FBXLoader, ALL_NPC_FBX_PATHS);
-  const baseIndex = instance.isConverted ? 5 : instance.baseModelIndex; // 0–4 unconverted, 5 converted
+  const baseIndex = instance.isConverted ? 4 : instance.baseModelIndex; // 0–3 unconverted, 4 converted
   const baseScene = allFbxs[baseIndex] ?? allFbxs[0];
 
-  // Success: which model and clip to use (cached models, no clone)
+  // Clone base model per instance so multiple NPCs can show the same model (e.g. many converted).
+  // Use SkeletonUtils.clone() so skinned meshes keep correct skeleton/bones and animations run.
+  const baseClone = useMemo(
+    () => (baseScene ? SkeletonUtils.clone(baseScene as THREE.Object3D) : null),
+    [baseScene]
+  );
+
+  // Success: which model and clip to use; clone so each NPC has its own copy during cheering
   const successBaseScene = instance.currentAnimation === 'cheering'
-    ? (successPhase === 0 ? allFbxs[instance.baseModelIndex] : allFbxs[5]) ?? allFbxs[0]
+    ? (successPhase === 0 ? allFbxs[instance.baseModelIndex] : allFbxs[4]) ?? allFbxs[0]
     : null;
+  const successBaseSceneClone = useMemo(
+    () => (successBaseScene ? SkeletonUtils.clone(successBaseScene as THREE.Object3D) : null),
+    [successBaseScene]
+  );
   const idle3Path = NPC_ANIMATION_PATHS.idle[2];
   const idle3Index = NPC_FBX_BASE_COUNT + getNpcAnimationIndex(idle3Path);
 
@@ -104,13 +116,14 @@ export function NPCCharacter({ instance, position = [0, 0, 0], scale = 1 }: NPCC
       : allFbxs[idle3Index];
     if (!clipFbx?.animations?.length) return;
 
-    if (!successMixerRef.current || successMixerBaseRef.current !== successBaseScene) {
+    if (!successMixerRef.current || successMixerBaseRef.current !== successBaseSceneClone) {
       if (successMixerRef.current) successMixerRef.current.stopAllAction();
-      successMixerRef.current = new THREE.AnimationMixer(successBaseScene as THREE.Object3D);
-      successMixerBaseRef.current = successBaseScene as THREE.Object3D;
+      if (!successBaseSceneClone) return;
+      successMixerRef.current = new THREE.AnimationMixer(successBaseSceneClone);
+      successMixerBaseRef.current = successBaseSceneClone;
     }
     successMixerRef.current.clipAction(clipFbx.animations[0]).reset().play();
-  }, [instance.currentAnimation, instance.baseModelIndex, successPhase, successBaseScene, allFbxs, idle3Index]);
+  }, [instance.currentAnimation, instance.baseModelIndex, successPhase, successBaseScene, successBaseSceneClone, allFbxs, idle3Index]);
 
   // When talking: default Idle 3 (index 2); every 6s play Idle 1 (4.2s) or Idle 2 (1.9s) once then back to Idle 3
   const [talkingIdleIndex, setTalkingIdleIndex] = useState(2);
@@ -150,13 +163,13 @@ export function NPCCharacter({ instance, position = [0, 0, 0], scale = 1 }: NPCC
   // Apply animation when it changes – crossfade to avoid T-pose gap between idles (skip when in success timeline)
   useEffect(() => {
     if (instance.currentAnimation === 'cheering') return;
-    if (!baseScene || !animClips.length) return;
+    if (!baseClone || !animClips.length) return;
 
-    // Recreate mixer if baseScene changed (e.g. after conversion)
-    if (!mixerRef.current || mixerBaseRef.current !== baseScene) {
+    // Recreate mixer if base clone changed (e.g. after conversion)
+    if (!mixerRef.current || mixerBaseRef.current !== baseClone) {
       if (mixerRef.current) mixerRef.current.stopAllAction();
-      mixerRef.current = new THREE.AnimationMixer(baseScene);
-      mixerBaseRef.current = baseScene;
+      mixerRef.current = new THREE.AnimationMixer(baseClone);
+      mixerBaseRef.current = baseClone;
     }
 
     const clip = animClips[0];
@@ -185,7 +198,7 @@ export function NPCCharacter({ instance, position = [0, 0, 0], scale = 1 }: NPCC
         currentActionRef.current.stop();
       }
     };
-  }, [animationPath, baseScene, animClips]);
+  }, [animationPath, baseClone, animClips]);
 
   // Update mixer on each frame; when cheering run success timeline (spin, switch at 4s, pulse at 6s, Success + face front at 9s)
   useFrame((state, delta) => {
@@ -243,12 +256,12 @@ export function NPCCharacter({ instance, position = [0, 0, 0], scale = 1 }: NPCC
     };
   }, []);
 
-  const displayScene = instance.currentAnimation === 'cheering' && successBaseScene ? successBaseScene : baseScene;
+  const displayScene = instance.currentAnimation === 'cheering' && successBaseSceneClone ? successBaseSceneClone : baseClone;
 
   return (
     <group ref={groupRef} position={position} scale={scale}>
       <group ref={effectScaleGroupRef}>
-        <primitive object={displayScene} />
+        {displayScene && <primitive object={displayScene} />}
       </group>
     </group>
   );

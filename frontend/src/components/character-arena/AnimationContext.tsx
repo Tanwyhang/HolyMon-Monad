@@ -3,15 +3,21 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import type { AnimationState, NPCInstance } from './types';
 
+/** Pray sequence: 0 = maze accelerate, 1 = spike visible, 2 = Jesus plays Praying */
+export type PrayPhase = -1 | 0 | 1 | 2;
+
 interface AnimationContextType {
   jesusState: AnimationState;
   npcs: NPCInstance[];
   actionInProgress: boolean;
+  prayPhase: PrayPhase;
 
   spawnNPC: () => void;
   triggerTalk: () => void;
   triggerSuccess: () => void;
   triggerFail: () => void;
+  triggerDeal: () => void;
+  triggerPray: () => void;
   resetArena: () => void;
 }
 
@@ -21,13 +27,14 @@ export function AnimationProvider({ children }: { children: ReactNode }) {
   const [jesusState, setJesusState] = useState<AnimationState>('idle');
   const [npcs, setNPCs] = useState<NPCInstance[]>([]);
   const [actionInProgress, setActionInProgress] = useState(false);
+  const [prayPhase, setPrayPhase] = useState<PrayPhase>(-1);
 
   const spawnNPC = useCallback(() => {
     if (actionInProgress) return;
 
     const newNPC: NPCInstance = {
       id: `npc-${Date.now()}-${Math.random()}`,
-      baseModelIndex: Math.floor(Math.random() * 5), // Unconverted 1-5
+      baseModelIndex: Math.floor(Math.random() * 4), // Unconverted 1,2,4,5
       position: [
         (Math.random() - 0.5) * 30, // Random X
         0,                           // Ground level
@@ -114,10 +121,48 @@ export function AnimationProvider({ children }: { children: ReactNode }) {
     }, walkBackwardMs + Math.max(flyingKickMs, npcFailedMs) + 500);
   }, [actionInProgress]);
 
+  const triggerDeal = useCallback(() => {
+    if (actionInProgress) return;
+    setActionInProgress(true);
+    setJesusState('deal');
+
+    const dealDurationMs = 4000;
+    setTimeout(() => {
+      setJesusState('idle');
+      setActionInProgress(false);
+    }, dealDurationMs);
+  }, [actionInProgress]);
+
+  const triggerPray = useCallback(() => {
+    if (actionInProgress) return;
+    setActionInProgress(true);
+    setPrayPhase(0); // 1. Maze accelerates first
+
+    const mazeAccelMs = 3000;
+    const spikeThenJesusMs = 1500;
+    const jesusPrayMs = 5000;
+
+    setTimeout(() => {
+      setPrayPhase(1); // 2. Show spike
+    }, mazeAccelMs);
+
+    setTimeout(() => {
+      setPrayPhase(2);
+      setJesusState('praying'); // 3. Jesus plays Praying.fbx
+    }, mazeAccelMs + spikeThenJesusMs);
+
+    setTimeout(() => {
+      setJesusState('idle');
+      setPrayPhase(-1);
+      setActionInProgress(false);
+    }, mazeAccelMs + spikeThenJesusMs + jesusPrayMs);
+  }, [actionInProgress]);
+
   const resetArena = useCallback(() => {
     setJesusState('idle');
     setNPCs([]);
     setActionInProgress(false);
+    setPrayPhase(-1);
   }, []);
 
   return (
@@ -125,10 +170,13 @@ export function AnimationProvider({ children }: { children: ReactNode }) {
       jesusState,
       npcs,
       actionInProgress,
+      prayPhase,
       spawnNPC,
       triggerTalk,
       triggerSuccess,
       triggerFail,
+      triggerDeal,
+      triggerPray,
       resetArena,
     }}>
       {children}

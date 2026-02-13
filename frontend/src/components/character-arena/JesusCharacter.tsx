@@ -6,7 +6,7 @@ import type { Triple } from '@react-three/fiber';
 import type { AnimationState } from './types';
 import * as THREE from 'three';
 import { FBXLoaderSilent } from './fbxLoaderSilent';
-import { JESUS_ANIMATION_PATHS } from './jesusPaths';
+import { ALL_JESUS_FBX_PATHS, JESUS_ANIMATION_INDEX } from './jesusPaths';
 
 const ANIMATION_STATES: AnimationState[] = [
   'idle',
@@ -15,6 +15,8 @@ const ANIMATION_STATES: AnimationState[] = [
   'cheering',
   'walkBackward',
   'flyingKick',
+  'deal',
+  'praying',
 ];
 
 interface JesusCharacterProps {
@@ -25,57 +27,48 @@ interface JesusCharacterProps {
 
 export function JesusCharacter({ animationState, position = [0, 0, 0], scale = 1 }: JesusCharacterProps) {
   const groupRef = useRef<THREE.Group>(null);
-  const mixersRef = useRef<Map<AnimationState, THREE.AnimationMixer>>(new Map());
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const actionsRef = useRef<Map<AnimationState, THREE.AnimationAction>>(new Map());
+  const prevStateRef = useRef<AnimationState>(animationState);
 
-  const idleModel = useLoader(FBXLoaderSilent, JESUS_ANIMATION_PATHS.idle);
-  const walkingModel = useLoader(FBXLoaderSilent, JESUS_ANIMATION_PATHS.walking);
-  const talkingModel = useLoader(FBXLoaderSilent, JESUS_ANIMATION_PATHS.talking);
-  const cheeringModel = useLoader(FBXLoaderSilent, JESUS_ANIMATION_PATHS.cheering);
-  const walkBackwardModel = useLoader(FBXLoaderSilent, JESUS_ANIMATION_PATHS.walkBackward);
-  const flyingKickModel = useLoader(FBXLoaderSilent, JESUS_ANIMATION_PATHS.flyingKick);
+  const loaded = useLoader(FBXLoaderSilent, ALL_JESUS_FBX_PATHS) as THREE.Group[];
+  const model = loaded[0] ?? null;
 
-  const modelByState: Record<AnimationState, THREE.Group> = useMemo(
-    () => ({
-      idle: idleModel,
-      walking: walkingModel,
-      talking: talkingModel,
-      cheering: cheeringModel,
-      walkBackward: walkBackwardModel,
-      flyingKick: flyingKickModel,
-    }),
-    [idleModel, walkingModel, talkingModel, cheeringModel, walkBackwardModel, flyingKickModel]
-  );
-
-  const currentModel = modelByState[animationState] ?? idleModel;
-
-  // Create one mixer per model once; never destroy on switch so switching is stable
-  useEffect(() => {
-    const mixers = mixersRef.current;
-    const actions = actionsRef.current;
+  const clipsByState = useMemo(() => {
+    const map = new Map<AnimationState, THREE.AnimationClip>();
     ANIMATION_STATES.forEach((state) => {
-      const model = modelByState[state];
-      if (!model?.animations?.length || mixers.has(state)) return;
-      const mixer = new THREE.AnimationMixer(model);
-      const clip = model.animations[0];
+      const idx = JESUS_ANIMATION_INDEX[state];
+      const fbx = loaded[idx];
+      const clip = fbx?.animations?.[0];
+      if (clip) map.set(state, clip);
+    });
+    return map;
+  }, [loaded]);
+
+  useEffect(() => {
+    if (!model || !clipsByState.size) return;
+    if (mixerRef.current) mixerRef.current.stopAllAction();
+    mixerRef.current = new THREE.AnimationMixer(model);
+    const mixer = mixerRef.current;
+    clipsByState.forEach((clip, state) => {
       const action = mixer.clipAction(clip);
-      if (state === 'walkBackward' || state === 'flyingKick') {
+      if (state === 'walkBackward' || state === 'flyingKick' || state === 'deal' || state === 'praying') {
         action.setLoop(THREE.LoopOnce, 0);
       }
-      mixers.set(state, mixer);
-      actions.set(state, action);
+      actionsRef.current.set(state, action);
     });
-  }, [modelByState]);
+    return () => {
+      mixer.stopAllAction();
+      mixerRef.current = null;
+      actionsRef.current.clear();
+    };
+  }, [model, clipsByState]);
 
-  // When state changes: crossfade so new animation continues from last pose (no snap)
-  const prevStateRef = useRef<AnimationState>(animationState);
   useEffect(() => {
-    const actions = actionsRef.current;
     const prevState = prevStateRef.current;
     prevStateRef.current = animationState;
-
-    const prevAction = actions.get(prevState);
-    const currAction = actions.get(animationState);
+    const currAction = actionsRef.current.get(animationState);
+    const prevAction = actionsRef.current.get(prevState);
     if (!currAction) return;
 
     if (prevAction && prevAction !== currAction && prevAction.isRunning()) {
@@ -87,30 +80,14 @@ export function JesusCharacter({ animationState, position = [0, 0, 0], scale = 1
   }, [animationState]);
 
   useFrame((_, delta) => {
-    mixersRef.current.forEach((mixer) => mixer.update(delta));
+    if (mixerRef.current) mixerRef.current.update(delta);
   });
 
-  useEffect(
-    () => () => {
-      mixersRef.current.forEach((m) => m.stopAllAction());
-    },
-    []
-  );
-
-  const is = (m: THREE.Group) => m === currentModel;
-  // Offset flying kick start point back so it syncs with end of walk backward
-  const flyingKickOffset: [number, number, number] = [0, 0, -60];
+  if (!model) return null;
 
   return (
     <group ref={groupRef} position={position} scale={scale}>
-      <primitive object={idleModel} visible={is(idleModel)} />
-      <primitive object={walkingModel} visible={is(walkingModel)} />
-      <primitive object={talkingModel} visible={is(talkingModel)} />
-      <primitive object={cheeringModel} visible={is(cheeringModel)} />
-      <primitive object={walkBackwardModel} visible={is(walkBackwardModel)} />
-      <group position={flyingKickOffset}>
-        <primitive object={flyingKickModel} visible={is(flyingKickModel)} />
-      </group>
+      <primitive object={model} />
     </group>
   );
 }
