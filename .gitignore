@@ -46,4 +46,14 @@ yarn-error.log*
 plan
 
 # ElizaOS database
-.elizadb    
+.elizadb
+
+# Disabled files
+*.disabled
+
+# Session files and transcripts
+session-*.md
+transcipt.txt
+
+# Bun lock file
+bun.lock
