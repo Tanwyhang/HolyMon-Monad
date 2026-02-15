@@ -752,7 +752,7 @@ export const getHolyMonAgentAsCharacter = async (
 ): Promise<Character | null> => {
   try {
     const agents = await getHolyMonAgentsAsCharacters();
-    return agents.find((a) => a.settings?.holyMonData?.id === agentId) || null;
+    return agents.find((a) => a.id === agentId) || null;
   } catch (error) {
     console.error(
       "[API Client] Error fetching HolyMon agent as Character:",
