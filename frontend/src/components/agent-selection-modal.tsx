@@ -5,6 +5,7 @@ import { useAccount } from "wagmi";
 import { getHolyMonAgents } from "@/lib/api-client";
 import type { HolyMonAgent } from "@/types/agent";
 import { X, Check } from "lucide-react";
+import { AgentAvatar } from "@/components/agent-avatar";
 
 interface AgentSelectionModalProps {
   isOpen: boolean;
@@ -184,9 +185,11 @@ export default function AgentSelectionModal({
                     )}
 
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center font-bold text-white">
-                        {agent.symbol.slice(0, 2)}
-                      </div>
+                      <AgentAvatar
+                        seed={agent.id}
+                        size={48}
+                        className="rounded-lg"
+                      />
                       <div>
                         <h4 className="font-bold text-white">{agent.name}</h4>
                         <span className="text-xs text-purple-400">
