@@ -1,7 +1,15 @@
 import type { TournamentAgent } from './tournament.service';
 
+interface AgentData {
+  id: string;
+  name: string;
+  symbol: string;
+  description?: string;
+  color?: string;
+}
+
 interface TournamentService {
-  deployAgents(agentIds: string[], address: string): Promise<{
+  deployAgents(agents: AgentData[], address: string): Promise<{
     success: boolean;
     deployed: TournamentAgent[];
     error?: string;
@@ -9,29 +17,23 @@ interface TournamentService {
 }
 
 export class TournamentServiceImpl implements TournamentService {
-  async deployAgents(agentIds: string[], address: string): Promise<{
+  async deployAgents(agents: AgentData[], address: string): Promise<{
     success: boolean;
     deployed: TournamentAgent[];
     error?: string;
   }> {
     try {
-      console.log(`[TournamentService] Deploying agents: ${agentIds.join(', ')} for ${address}`);
+      console.log(`[TournamentService] Deploying agents: ${agents.map(a => a.name).join(', ')} for ${address}`);
 
       const deployedAgents: TournamentAgent[] = [];
 
-      for (const agentId of agentIds) {
-        const agent = await this.fetchAgentDetails(agentId);
-        if (!agent) {
-          console.warn(`[TournamentService] Agent ${agentId} not found`);
-          continue;
-        }
-
+      for (const agent of agents) {
         const tournamentAgent: TournamentAgent = {
-          id: agentId,
+          id: agent.id,
           name: agent.name,
           symbol: agent.symbol,
           color: agent.color || '#836EF9',
-          avatar: agent.avatar || `https://api.dicebear.com/9.x/pixel-art/svg?seed=${agent.name}`,
+          avatar: `https://api.dicebear.com/9.x/pixel-art/svg?seed=${agent.name}`,
           stakedAmount: BigInt(0),
           followers: 100,
           status: 'IDLE',
@@ -53,17 +55,5 @@ export class TournamentServiceImpl implements TournamentService {
         error: error instanceof Error ? error.message : 'Failed to deploy agents',
       };
     }
-  }
-
-  private async fetchAgentDetails(agentId: string): Promise<any> {
-    const backendUrl = process.env.AGENT_REGISTRY_ADDRESS;
-    
-    const response = await fetch(`/api/backend-proxy/agents/${agentId}`);
-    if (!response.ok) {
-      return null;
-    }
-
-    const data = await response.json();
-    return data.success ? data.data : null;
   }
 }

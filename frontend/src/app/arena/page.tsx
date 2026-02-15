@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import PixelBlast from "@/components/PixelBlast";
 import AgentSelectionModal from "@/components/agent-selection-modal";
 import { useAccount } from "wagmi";
 import type { HolyMonAgent } from "@/types/agent";
@@ -29,9 +28,9 @@ export default function Arena() {
       throw new Error(data.error || "Failed to deploy agents");
     }
 
-    // Navigate to 3D arena after successful deployment
     router.push("/tournament-arena");
   };
+
   const activeTournaments = [
     {
       id: "weekly-1",
@@ -104,93 +103,95 @@ export default function Arena() {
   ];
 
   return (
-    <main className="min-h-[calc(100vh-64px)] bg-[#050505] text-gray-200 font-sans p-4 lg:p-8 relative overflow-hidden">
-      {/* PIXEL BLAST BACKGROUND */}
-      <div className="absolute inset-0 pointer-events-none z-0">
-        <PixelBlast
-          variant="square"
-          pixelSize={4}
-          patternScale={7}
-          color="#836EF9"
-          liquid={false}
-          enableRipples={false}
-          speed={2}
-          className="w-full h-full opacity-90"
-        />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#050505_100%)] pointer-events-none" />
-      </div>
+    <main className="min-h-screen bg-black text-white font-sans relative overflow-hidden">
+      {/* BRUTALIST VIDEO BANNER */}
+      <div className="relative w-full h-[50vh] border-b-8 border-white">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover"
+        >
+          <source src="/banneranim.webm" type="video/webm" />
+        </video>
 
-      <div className="max-w-7xl mx-auto relative z-10">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-black mb-2 uppercase tracking-tight">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black" />
+
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <h1 className="text-8xl md:text-9xl font-black uppercase tracking-tighter text-white mb-4 drop-shadow-[8px_8px_0_#000]">
             Arena
           </h1>
-          <p className="text-neutral-500">Compete in tournaments and battles</p>
+          <p className="text-xl md:text-2xl font-bold uppercase tracking-widest bg-black px-4 py-2">
+            Compete. Conquer. Prevail.
+          </p>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* CONTENT SECTION */}
+      <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-12 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Active & Upcoming Tournaments */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-8">
             {/* Active Tournaments */}
-            <div className="bg-[#0a0a0a] border border-neutral-800">
-              <div className="border-b border-neutral-800 px-4 py-3 flex items-center justify-between">
-                <h2 className="font-bold uppercase tracking-wide">
-                  Active Tournaments
-                </h2>
-                <span className="text-xs text-green-500 font-mono">LIVE</span>
+            <div>
+              <div className="border-4 border-white bg-white mb-6">
+                <div className="bg-black text-white px-6 py-2 text-2xl font-black uppercase tracking-wider flex items-center justify-between">
+                  <span>Active Tournaments</span>
+                  <span className="bg-red-600 px-4 py-1 text-sm font-bold uppercase">
+                    Live
+                  </span>
+                </div>
               </div>
 
-              <div className="p-4 space-y-4">
+              <div className="space-y-4">
                 {activeTournaments.map((tournament) => (
                   <div
                     key={tournament.id}
-                    className="border border-neutral-800 hover:border-[#836EF9]/30 transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)] p-4 relative overflow-hidden group"
+                    className="border-4 border-white bg-black p-6 hover:bg-white hover:text-black transition-all duration-200"
                   >
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#836EF9]/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity [transition-timing-function:cubic-bezier(0,.4,.01,.99)]" />
-
-                    <div className="flex items-start justify-between mb-3 relative z-10">
+                    <div className="flex items-start justify-between mb-4">
                       <div>
-                        <h3 className="font-bold text-lg text-white">
+                        <h3 className="text-2xl font-black uppercase tracking-tight mb-1">
                           {tournament.name}
                         </h3>
-                        <p className="text-sm text-neutral-500">
-                          {tournament.participants} agents competing
+                        <p className="text-lg font-bold uppercase">
+                          {tournament.participants} Agents
                         </p>
                       </div>
                       <span
-                        className={`px-3 py-1 text-xs font-bold uppercase ${
+                        className={`px-4 py-2 text-xl font-black uppercase border-2 ${
                           tournament.status === "In Progress"
-                            ? "bg-green-900/50 text-green-400"
-                            : "bg-amber-900/50 text-amber-400"
+                            ? "bg-green-500 border-green-500 text-black"
+                            : "bg-amber-500 border-amber-500 text-black"
                         }`}
                       >
                         {tournament.status}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4 text-sm mb-4 relative z-10">
-                      <div>
-                        <p className="text-neutral-600 text-xs uppercase">
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      <div className="border-2 border-white p-3">
+                        <p className="text-sm font-bold uppercase mb-1">
                           Round
                         </p>
-                        <p className="font-bold text-white">
-                          {tournament.round} / {tournament.totalRounds}
+                        <p className="text-4xl font-black">
+                          {tournament.round}/{tournament.totalRounds}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-neutral-600 text-xs uppercase">
-                          Prize Pool
+                      <div className="border-2 border-amber-500 p-3 bg-amber-500/10">
+                        <p className="text-sm font-bold uppercase mb-1">
+                          Prize
                         </p>
-                        <p className="font-bold text-amber-500">
+                        <p className="text-4xl font-black text-amber-500">
                           {tournament.prize.toLocaleString()} MON
                         </p>
                       </div>
-                      <div>
-                        <p className="text-neutral-600 text-xs uppercase">
-                          Ends In
+                      <div className="border-2 border-white p-3">
+                        <p className="text-sm font-bold uppercase mb-1">
+                          Ends
                         </p>
-                        <p className="font-bold text-white font-mono">
+                        <p className="text-2xl font-black uppercase">
                           {tournament.endsIn}
                         </p>
                       </div>
@@ -198,9 +199,9 @@ export default function Arena() {
 
                     <button
                       onClick={() => setShowAgentModal(true)}
-                      className="w-full py-2 bg-[#836EF9] hover:bg-[#6b55d7] text-white text-sm font-bold uppercase tracking-wider transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)]"
+                      className="w-full py-4 bg-white text-black text-xl font-black uppercase tracking-widest hover:bg-yellow-400 transition-colors border-4 border-white"
                     >
-                      🎮 Enter 3D Arena
+                      Enter 3D Arena
                     </button>
                   </div>
                 ))}
@@ -208,54 +209,53 @@ export default function Arena() {
             </div>
 
             {/* Upcoming Tournaments */}
-            <div className="bg-[#0a0a0a] border border-neutral-800">
-              <div className="border-b border-neutral-800 px-4 py-3">
-                <h2 className="font-bold uppercase tracking-wide">
+            <div>
+              <div className="border-4 border-white bg-white mb-6">
+                <div className="bg-black text-white px-6 py-2 text-2xl font-black uppercase tracking-wider">
                   Upcoming Tournaments
-                </h2>
+                </div>
               </div>
 
-              <div className="p-4 space-y-4">
+              <div className="space-y-4">
                 {upcomingTournaments.map((tournament) => (
                   <div
                     key={tournament.id}
-                    className="border border-neutral-800 hover:border-neutral-600 transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)] p-4"
+                    className="border-4 border-white bg-black p-6 hover:bg-white hover:text-black transition-all duration-200"
                   >
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start justify-between mb-4">
                       <div>
-                        <h3 className="font-bold text-white">
+                        <h3 className="text-2xl font-black uppercase tracking-tight mb-1">
                           {tournament.name}
                         </h3>
-                        <p className="text-sm text-neutral-500">
-                          {tournament.registered}/{tournament.maxParticipants}{" "}
-                          registered
+                        <p className="text-lg font-bold uppercase">
+                          {tournament.registered}/{tournament.maxParticipants} Registered
                         </p>
                       </div>
-                      <span className="px-3 py-1 bg-neutral-800 text-neutral-400 text-xs font-bold uppercase">
-                        Min T{tournament.minTier}
+                      <span className="px-4 py-2 text-xl font-black uppercase border-2 border-white bg-white text-black">
+                        T{tournament.minTier}+
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                      <div>
-                        <p className="text-neutral-600 text-xs uppercase">
-                          Prize Pool
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div className="border-2 border-amber-500 p-3 bg-amber-500/10">
+                        <p className="text-sm font-bold uppercase mb-1">
+                          Prize
                         </p>
-                        <p className="font-bold text-amber-500">
+                        <p className="text-4xl font-black text-amber-500">
                           {tournament.prize.toLocaleString()} MON
                         </p>
                       </div>
-                      <div>
-                        <p className="text-neutral-600 text-xs uppercase">
-                          Starts In
+                      <div className="border-2 border-white p-3">
+                        <p className="text-sm font-bold uppercase mb-1">
+                          Starts
                         </p>
-                        <p className="font-bold text-white font-mono">
+                        <p className="text-2xl font-black uppercase">
                           {tournament.startsIn}
                         </p>
                       </div>
                     </div>
 
-                    <button className="w-full py-2 bg-white text-black font-bold uppercase tracking-wider hover:bg-amber-500 transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)]">
+                    <button className="w-full py-4 bg-white text-black text-xl font-black uppercase tracking-widest hover:bg-yellow-400 transition-colors border-4 border-white">
                       Register Agent
                     </button>
                   </div>
@@ -265,35 +265,43 @@ export default function Arena() {
           </div>
 
           {/* Recent Battles */}
-          <div className="bg-[#0a0a0a] border border-neutral-800 h-fit">
-            <div className="border-b border-neutral-800 px-4 py-3">
-              <h2 className="font-bold uppercase tracking-wide">
+          <div>
+            <div className="border-4 border-white bg-white mb-6">
+              <div className="bg-black text-white px-6 py-2 text-2xl font-black uppercase tracking-wider">
                 Recent Battles
-              </h2>
+              </div>
             </div>
 
-            <div className="divide-y divide-neutral-800">
+            <div className="border-4 border-white bg-black divide-y-4 divide-white">
               {recentBattles.map((battle) => (
                 <div
                   key={battle.id}
-                  className="p-4 hover:bg-neutral-900/50 transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)]"
+                  className="p-6 hover:bg-white hover:text-black transition-all duration-200"
                 >
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     <span
-                      className={`font-bold text-sm ${battle.winner === battle.agent1 ? "text-green-500" : "text-neutral-500"}`}
+                      className={`text-xl font-black uppercase ${
+                        battle.winner === battle.agent1
+                          ? "text-green-500"
+                          : "opacity-50"
+                      }`}
                     >
                       {battle.agent1}
                     </span>
-                    <span className="text-neutral-700 text-xs font-bold">
+                    <span className="text-3xl font-black uppercase px-4">
                       VS
                     </span>
                     <span
-                      className={`font-bold text-sm ${battle.winner === battle.agent2 ? "text-green-500" : "text-neutral-500"}`}
+                      className={`text-xl font-black uppercase ${
+                        battle.winner === battle.agent2
+                          ? "text-green-500"
+                          : "opacity-50"
+                      }`}
                     >
                       {battle.agent2}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-neutral-600">
+                  <div className="flex items-center justify-between text-lg font-bold uppercase">
                     <span>{battle.tournament}</span>
                     <span className="font-mono">{battle.time}</span>
                   </div>
@@ -301,10 +309,10 @@ export default function Arena() {
               ))}
             </div>
 
-            <div className="px-4 py-3 border-t border-neutral-800">
+            <div className="border-4 border-white bg-black mt-4 p-4">
               <Link
                 href="#"
-                className="text-sm text-neutral-500 hover:text-[#836EF9] transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)] font-bold uppercase tracking-wider"
+                className="block text-center text-xl font-black uppercase tracking-widest hover:bg-white hover:text-black transition-colors py-2"
               >
                 View All Battles →
               </Link>
@@ -312,6 +320,7 @@ export default function Arena() {
           </div>
         </div>
       </div>
+
       <AgentSelectionModal
         isOpen={showAgentModal}
         onClose={() => setShowAgentModal(false)}

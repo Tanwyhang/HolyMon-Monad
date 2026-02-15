@@ -32,7 +32,13 @@ export default function TournamentArena() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        agentIds: selectedAgents.map((a) => a.id),
+        agents: selectedAgents.map((a) => ({
+          id: a.id,
+          name: a.name,
+          symbol: a.symbol,
+          description: a.description,
+          color: a.visualTraits?.colorScheme || '#836EF9',
+        })),
         address,
       }),
     });

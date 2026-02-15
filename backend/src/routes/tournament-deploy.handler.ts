@@ -1,42 +1,46 @@
 import { tournamentService } from '../services/tournament.service';
 import { TournamentServiceImpl } from '../services/tournament-deploy.service';
 
-export async function handleDeployAgents(req: Request) {
+import { tournamentService } from '../services/tournament.service';
+import { TournamentServiceImpl } from '../services/tournament-deploy.service';
+import type { APIResponse } from '../types';
+
+export async function handleDeployAgents(req: Request): Promise<APIResponse> {
   try {
     const body = await req.json();
-    const { agentIds, address } = body;
+    const { agents, address } = body;
 
-    if (!agentIds || !Array.isArray(agentIds)) {
-      return Response.json(
-        { success: false, error: 'Invalid agentIds' },
-        { status: 400 }
-      );
+    if (!agents || !Array.isArray(agents)) {
+      return {
+        success: false,
+        error: 'Invalid agents'
+      };
     }
 
     if (!address) {
-      return Response.json(
-        { success: false, error: 'Address required' },
-        { status: 400 }
-      );
+      return {
+        success: false,
+        error: 'Address required'
+      };
     }
 
-    if (agentIds.length === 0) {
-      return Response.json(
-        { success: false, error: 'No agents to deploy' },
-        { status: 400 }
-      );
+    if (agents.length === 0) {
+      return {
+        success: false,
+        error: 'No agents to deploy'
+      };
     }
 
-    console.log(`[API] Deploying ${agentIds.length} agents to tournament for ${address}`);
+    console.log(`[API] Deploying ${agents.length} agents to tournament for ${address}`);
 
     const deployService = new TournamentServiceImpl();
-    const result = await deployService.deployAgents(agentIds, address);
+    const result = await deployService.deployAgents(agents, address);
 
     if (!result.success) {
-      return Response.json(
-        { success: false, error: result.error || 'Deployment failed' },
-        { status: 500 }
-      );
+      return {
+        success: false,
+        error: result.error || 'Deployment failed'
+      };
     }
 
     const tournamentAgents = result.deployed || [];
@@ -45,16 +49,24 @@ export async function handleDeployAgents(req: Request) {
       tournamentService.addAgentToTournament(agent);
     });
 
-    return Response.json({
+    console.log(`[API] Returning ${tournamentAgents.length} deployed agents`);
+
+    const serializedAgents = tournamentAgents.map(agent => ({
+      ...agent,
+      stakedAmount: agent.stakedAmount.toString(),
+    }));
+
+    return {
       success: true,
-      deployed: tournamentAgents,
+      deployed: serializedAgents,
       message: `Successfully deployed ${tournamentAgents.length} agents to the arena`,
-    });
+    };
   } catch (error) {
     console.error('[API] Error in deploy-agents handler:', error);
-    return Response.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return {
+      success: false,
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    };
   }
 }
