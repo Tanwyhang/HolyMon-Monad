@@ -1,31 +1,63 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AgentAvatar } from "@/components/agent-avatar";
 import { MarketChart } from "@/components/market-chart";
 import PixelBlast from "@/components/PixelBlast";
 import { WrapMon } from "@/components/wrap-mon";
 import { StakeMon } from "@/components/stake-mon";
-import { useAccount, useBalance } from "wagmi";
+import { useAccount, useBalance, useReadContract } from "wagmi";
+import { WMON_CONTRACT } from "@/lib/constants/wmon";
+import { getHolyMonAgents } from "@/lib/api-client";
+
+const WMON_BALANCE_ABI = [
+  {
+    inputs: [{ internalType: "address", name: "account", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
 
 export default function Dashboard() {
   const [activeWalletTab, setActiveWalletTab] = useState<"wrap" | "stake">(
     "wrap",
   );
+  const [agentCount, setAgentCount] = useState(0);
   const { address, isConnected } = useAccount();
   const { data: monBalance } = useBalance({ address });
+  const { data: wmonBalance } = useReadContract({
+    address: WMON_CONTRACT.address as `0x${string}`,
+    abi: WMON_BALANCE_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+  });
 
   const liquidMon = monBalance?.value
     ? (Number(monBalance.value) / 1e18).toFixed(2)
     : "0.00";
 
+  const wrappedMon =
+    wmonBalance !== undefined
+      ? (Number(wmonBalance) / 1e18).toFixed(2)
+      : "0.00";
+
   const walletStats = [
     { label: "LIQUID MON", value: isConnected ? liquidMon : "0.00" },
     { label: "STAKED", value: "0" },
-    { label: "TOTAL INFLUENCE", value: "0" },
-    { label: "GLOBAL RANK", value: "N/A" },
+    { label: "WRAPPED MON (WMON)", value: isConnected ? wrappedMon : "0.00" },
+    { label: "NO. OF AGENTS", value: agentCount.toString() },
   ];
+
+  useEffect(() => {
+    async function loadAgents() {
+      const agents = await getHolyMonAgents();
+      setAgentCount(agents.length);
+    }
+    loadAgents();
+  }, []);
 
   const userAgents = [
     {
@@ -207,68 +239,17 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* SECTION 2: WRAP/STAKE INTERFACE */}
-        <div className="relative bg-[#0f0a1a] border-2 border-[#836EF9] overflow-hidden shadow-[0_0_30px_rgba(131,110,249,0.3)]">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-[#836EF9]/10 rounded-full blur-3xl" />
-          <div className="absolute top-0 left-0 w-6 h-6 border-l-2 border-t-2 border-[#836EF9]/40" />
-          <div className="absolute top-0 right-0 w-6 h-6 border-r-2 border-t-2 border-[#836EF9]/40" />
-          <div className="absolute bottom-0 left-0 w-6 h-6 border-l-2 border-b-2 border-[#836EF9]/40" />
-          <div className="absolute bottom-0 right-0 w-6 h-6 border-r-2 border-b-2 border-[#836EF9]/40" />
-
-          <div className="relative z-10 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-black text-white tracking-wide uppercase">
-                MON Operations
-              </h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setActiveWalletTab("wrap")}
-                  className={`px-4 py-2 text-sm font-bold uppercase transition-colors ${
-                    activeWalletTab === "wrap"
-                      ? "bg-[#836EF9] text-white"
-                      : "bg-neutral-900 text-neutral-500 hover:text-white"
-                  }`}
-                >
-                  Wrap/Unwrap
-                </button>
-                <button
-                  onClick={() => setActiveWalletTab("stake")}
-                  className={`px-4 py-2 text-sm font-bold uppercase transition-colors ${
-                    activeWalletTab === "stake"
-                      ? "bg-[#836EF9] text-white"
-                      : "bg-neutral-900 text-neutral-500 hover:text-white"
-                  }`}
-                >
-                  Stake
-                </button>
-              </div>
-            </div>
-
-            {isConnected ? (
-              <div>
-                {activeWalletTab === "wrap" ? <WrapMon /> : <StakeMon />}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-neutral-500">
-                <div className="text-sm font-bold uppercase tracking-wider mb-2">
-                  Connect Your Wallet
-                </div>
-                <div className="text-xs">
-                  Connect to wrap, unwrap, and stake MON tokens
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* SECTION 3: FEATURED TOURNAMENT HERO */}
+        {/* SECTION 2: FEATURED TOURNAMENT HERO */}
         <div className="relative group border-2 border-neutral-700 bg-black">
           {/* Hero Banner */}
-          <div className="relative">
-            <img
-              src="/holybanner.png"
-              alt={tournaments[0].name}
-              className="w-full h-40 md:h-48 object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-500 [transition-timing-function:cubic-bezier(0,.4,.01,.99)]"
+          <div className="relative overflow-hidden">
+            <video
+              src="/banneranim.webm"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-40 md:h-48 object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-500 [transition-timing-function:cubic-bezier(0,.4,.01,.99)] scale-[1.8]"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
 
@@ -328,9 +309,12 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <button className="px-6 py-3 bg-white text-black font-black uppercase tracking-wider text-sm hover:bg-amber-500 transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)] shadow-[4px_4px_0px_0px_rgba(131,110,249,0.8)] whitespace-nowrap">
+                <Link
+                  href="/arena"
+                  className="px-6 py-3 bg-white text-black font-black uppercase tracking-wider text-sm hover:bg-amber-500 transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)] shadow-[4px_4px_0px_0px_rgba(131,110,249,0.8)] whitespace-nowrap"
+                >
                   JOIN BATTLE
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -365,13 +349,16 @@ export default function Dashboard() {
 
               {/* Squad Grid */}
               <div className="relative z-10 grid grid-cols-4 gap-3">
-                {userAgents.map((agent) => (
+                {userAgents.map((agent, index) => (
                   <Link
                     key={agent.id}
                     href={`/agent/${agent.id}`}
                     className="group flex flex-col items-center gap-2"
                   >
-                    <div className="relative">
+                    <div
+                      className="relative animate-float"
+                      style={{ animationDelay: `${index * 0.4}s` }}
+                    >
                       {/* Glow on hover */}
                       <div className="absolute inset-0 bg-[#836EF9] rounded-lg blur-lg opacity-0 group-hover:opacity-40 transition-opacity duration-300 [transition-timing-function:cubic-bezier(0,.4,.01,.99)] scale-110" />
 
@@ -530,10 +517,13 @@ export default function Dashboard() {
               >
                 {/* Compact Banner */}
                 <div className="h-24 w-full relative overflow-hidden">
-                  <img
-                    src="/holybanner.png"
-                    alt={t.name}
-                    className="w-full h-full object-cover opacity-50 group-hover:opacity-70 transition-opacity [transition-timing-function:cubic-bezier(0,.4,.01,.99)] grayscale group-hover:grayscale-0"
+                  <video
+                    src="/banneranim.webm"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover opacity-50 group-hover:opacity-70 transition-opacity [transition-timing-function:cubic-bezier(0,.4,.01,.99)] grayscale group-hover:grayscale-0 scale-[1.8]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent" />
 
@@ -591,6 +581,60 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* SECTION 5: WRAP/STAKE INTERFACE */}
+        <div className="relative bg-[#0f0a1a] border-2 border-[#836EF9] overflow-hidden shadow-[0_0_30px_rgba(131,110,249,0.3)]">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#836EF9]/10 rounded-full blur-3xl" />
+          <div className="absolute top-0 left-0 w-6 h-6 border-l-2 border-t-2 border-[#836EF9]/40" />
+          <div className="absolute top-0 right-0 w-6 h-6 border-r-2 border-t-2 border-[#836EF9]/40" />
+          <div className="absolute bottom-0 left-0 w-6 h-6 border-l-2 border-b-2 border-[#836EF9]/40" />
+          <div className="absolute bottom-0 right-0 w-6 h-6 border-r-2 border-b-2 border-[#836EF9]/40" />
+
+          <div className="relative z-10 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-black text-white tracking-wide uppercase">
+                MON Operations
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setActiveWalletTab("wrap")}
+                  className={`px-4 py-2 text-sm font-bold uppercase transition-colors ${
+                    activeWalletTab === "wrap"
+                      ? "bg-[#836EF9] text-white"
+                      : "bg-neutral-900 text-neutral-500 hover:text-white"
+                  }`}
+                >
+                  Wrap/Unwrap
+                </button>
+                <button
+                  onClick={() => setActiveWalletTab("stake")}
+                  className={`px-4 py-2 text-sm font-bold uppercase transition-colors ${
+                    activeWalletTab === "stake"
+                      ? "bg-[#836EF9] text-white"
+                      : "bg-neutral-900 text-neutral-500 hover:text-white"
+                  }`}
+                >
+                  Stake
+                </button>
+              </div>
+            </div>
+
+            {isConnected ? (
+              <div>
+                {activeWalletTab === "wrap" ? <WrapMon /> : <StakeMon />}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-neutral-500">
+                <div className="text-sm font-bold uppercase tracking-wider mb-2">
+                  Connect Your Wallet
+                </div>
+                <div className="text-xs">
+                  Connect to wrap, unwrap, and stake MON tokens
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
