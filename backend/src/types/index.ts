@@ -1,85 +1,3 @@
-export interface Agent {
-  id: string;
-  owner: string;
-  name: string;
-  symbol: string;
-  prompt: string;
-  metadataURI: string;
-  createdAt: number;
-}
-
-export interface CreateAgentRequest {
-  name: string;
-  symbol: string;
-  prompt: string;
-  backstory?: string;
-  visualTraits?: {
-    colorScheme: string;
-    aura: string;
-    accessories: string[];
-  };
-  elizaos?: {
-    plugins?: string[];
-    topics?: string[];
-    style?: { chat?: string[]; post?: string[] };
-  };
-}
-
-export interface CreateAgentResponse {
-  success: boolean;
-  agentId: string;
-  agent: Agent;
-  txHash: string;
-  metadataBlobId?: string;
-}
-
-export interface TokenInfo {
-  tokenAddress: string;
-  agentId: string;
-  creator: string;
-  name: string;
-  symbol: string;
-  totalSupply: string;
-  deployed: boolean;
-}
-
-export interface DeployTokenRequest {
-  agentId: string;
-  tokenName: string;
-  tokenSymbol: string;
-  initialSupply: string;
-}
-
-export interface DeployTokenResponse {
-  success: boolean;
-  tokenAddress: string;
-  txHash: string;
-  tokenInfo: TokenInfo;
-}
-
-export interface StakingTier {
-  minStake: string;
-  multiplier: number;
-  name: string;
-}
-
-export interface UserStakeInfo {
-  stakedAmount: string;
-  startTime: number;
-  lastClaimTime: number;
-  multiplier: number;
-  tier: StakingTier;
-  pendingRewards: string;
-}
-
-export interface StakeRequest {
-  amount: string;
-}
-
-export interface UnstakeRequest {
-  amount: string;
-}
-
 export interface APIResponse<T = any> {
   success: boolean;
   data?: T;
@@ -95,68 +13,79 @@ export interface ErrorResponse {
   details?: any;
 }
 
-// ERC-8004 Types
-export interface AgentCard {
+export interface AIUsageRecord {
+  agentId: string;
+  tokensUsed: number;
+  costX402: number;
+  timestamp: number;
+  isNPC: boolean;
+}
+
+export type ReligionState = 'COLLAB' | 'SOLO' | 'CONVERTED';
+
+export interface ReligiousAgent {
+  id: string;
   name: string;
-  description: string;
-  version?: string;
-  apiEndpoints?: {
-    http?: string;
-    mcp?: string;
-    a2a?: string;
-  };
-  capabilities?: string[];
-  pricing?: {
-    model: string;
-    price: string;
-  };
-  trustModels?: string[];
-  wallet?: string;
-  did?: string;
-  ens?: string;
-  holyMonServices?: {
-    hasToken?: boolean;
-    tokenAddress?: string;
-    isStaking?: boolean;
-    stakedAmount?: string;
-    hasElizaOS?: boolean;
-    hasX402?: boolean;
-    x402Pricing?: {
-      chat?: string;
-      generate?: string;
-      [key: string]: string;
-    };
-  };
+  symbol: string;
+  color: string;
+  state: ReligionState;
+  coalitionId?: string;
+  scripture: string[];
+  parables: string[];
+  prophecies: string[];
+  convertedCount: number;
+  convertedByAgentId?: string;
+  connectionIds: string[];
 }
 
-export interface ERC8004Identity {
-  tokenId: bigint;
-  owner?: `0x${string}`;
-  agentCard?: AgentCard;
-  exists: boolean;
+export interface Coalition {
+  id: string;
+  name: string;
+  symbol: string;
+  color: string;
+  leaderId: string;
+  memberIds: string[];
+  ideology: string;
+  createdAt: number;
+  active: boolean;
 }
 
-export interface ERC8004Reputation {
-  agentId: bigint;
-  totalFeedback: bigint;
-  averageScore: number;
-  tags: string[];
-  exists: boolean;
+export type NPCState = 'CONVERTED' | 'UNCONVERTED';
+
+export interface NPC {
+  id: string;
+  name: string;
+  state: NPCState;
+  convertedByAgentId?: string;
+  convertedAt?: number;
+  x402Balance: number;
 }
 
-export interface ERC8004Feedback {
-  score: number;
-  tags: string[];
-  feedbackURI?: string;
-  comment?: string;
+export type ConnectionStatus = 'active' | 'terminated' | 'betrayed';
+
+export interface AgentConnection {
+  id: string;
+  agent1Id: string;
+  agent2Id: string;
+  establishedAt: number;
+  x402Paid: number;
+  status: ConnectionStatus;
+  interactionHistory: Array<{
+    type: string;
+    timestamp: number;
+  }>;
 }
 
-export interface ERC8004Agent extends ERC8004Identity {
-  reputation: ERC8004Reputation;
-  holyMonServices?: {
-    tokenInfo?: TokenInfo;
-    stakingInfo?: UserStakeInfo;
-    elizaOSInfo?: any;
-    x402Enabled?: boolean;
+export interface ReligionStats {
+  totalAgents: number;
+  states: {
+    COLLAB: number;
+    SOLO: number;
+    CONVERTED: number;
   };
+  totalCoalitions: number;
+  totalConnections: number;
+  totalNPCs: number;
+  convertedNPCs: number;
+  totalConversions: number;
 }
