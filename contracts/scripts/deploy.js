@@ -2,11 +2,21 @@ const { ethers } = require("hardhat");
 require("dotenv").config();
 
 async function main() {
-  console.log("Deploying HolyMon contracts to Monad testnet...");
-
-  // Get the deployer account
-  const [deployer] = await ethers.getSigners();
+  console.log("Deploying HolyMon contracts to Monad testnet..."); 
+  
+  // Get the deployer account - explicitly use the first signer from hardhat config
+  const signers = await ethers.getSigners();
+  console.log("Signers available:", signers.length);
+  
+  if (signers.length === 0) {
+    console.error("No signers available! Check MONAD_TESTNET_PRIVATE_KEY in .env");
+    console.log("Current process.env.MONAD_TESTNET_PRIVATE_KEY:", process.env.MONAD_TESTNET_PRIVATE_KEY ? "SET" : "NOT SET");
+    process.exit(1);
+  }
+  
+  const deployer = signers[0];
   console.log("Deploying contracts with account:", deployer.address);
+  console.log("Account balance:", await ethers.provider.getBalance(deployer.address));
 
   // Get contract factories
   const AgentRegistry = await ethers.getContractFactory("AgentRegistry");

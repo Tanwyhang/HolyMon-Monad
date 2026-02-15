@@ -1,4 +1,7 @@
 require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config();
+
+console.log("MONAD_TESTNET_PRIVATE_KEY set:", !!process.env.MONAD_TESTNET_PRIVATE_KEY);
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
