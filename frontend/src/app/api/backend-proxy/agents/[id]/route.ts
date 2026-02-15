@@ -10,12 +10,9 @@ export async function GET(
     const resolvedParams = await params;
     const agentId = resolvedParams.id;
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/agents/${agentId}`,
-      {
-        method: "GET",
-      },
-    );
+    const response = await fetch(`${BACKEND_URL}/api/agents/${agentId}`, {
+      method: "GET",
+    });
 
     const data = await response.json();
     return NextResponse.json(data);

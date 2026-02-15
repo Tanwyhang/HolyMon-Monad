@@ -1,9 +1,37 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PixelBlast from "@/components/PixelBlast";
+import AgentSelectionModal from "@/components/agent-selection-modal";
+import { useAccount } from "wagmi";
+import type { HolyMonAgent } from "@/types/agent";
 
 export default function Arena() {
+  const router = useRouter();
+  const { address } = useAccount();
+  const [showAgentModal, setShowAgentModal] = useState(false);
+
+  const handleDeployAgents = async (selectedAgents: HolyMonAgent[]) => {
+    const response = await fetch("/api/tournament/deploy-agents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agentIds: selectedAgents.map((a) => a.id),
+        address,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error || "Failed to deploy agents");
+    }
+
+    // Navigate to 3D arena after successful deployment
+    router.push("/tournament-arena");
+  };
   const activeTournaments = [
     {
       id: "weekly-1",
@@ -168,11 +196,12 @@ export default function Arena() {
                       </div>
                     </div>
 
-                    <Link href="/tournament-arena" className="block w-full">
-                      <button className="w-full py-2 bg-[#836EF9] hover:bg-[#6b55d7] text-white text-sm font-bold uppercase tracking-wider transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)]">
-                        🎮 Enter 3D Arena
-                      </button>
-                    </Link>
+                    <button
+                      onClick={() => setShowAgentModal(true)}
+                      className="w-full py-2 bg-[#836EF9] hover:bg-[#6b55d7] text-white text-sm font-bold uppercase tracking-wider transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)]"
+                    >
+                      🎮 Enter 3D Arena
+                    </button>
                   </div>
                 ))}
               </div>
@@ -283,6 +312,11 @@ export default function Arena() {
           </div>
         </div>
       </div>
+      <AgentSelectionModal
+        isOpen={showAgentModal}
+        onClose={() => setShowAgentModal(false)}
+        onDeploy={handleDeployAgents}
+      />
     </main>
   );
 }

@@ -1,9 +1,9 @@
-import { useRef, useMemo, useEffect } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Text, Sphere, Instance, Instances } from '@react-three/drei';
-import * as THREE from 'three';
-import { Agent } from './types';
-import { Crown } from './Crown';
+import { useRef, useMemo, useEffect } from "react";
+import { useFrame } from "@react-three/fiber";
+import { Text, Sphere, Instance, Instances } from "@react-three/drei";
+import * as THREE from "three";
+import { Agent } from "./types";
+import { Crown } from "./Crown";
 
 interface AgentNodeProps {
   agent: Agent;
@@ -18,12 +18,13 @@ export function AgentNode({ agent, positionRef, isLeader }: AgentNodeProps) {
   const npcRef = useRef<THREE.InstancedMesh>(null);
 
   // Scaling logic: Base + Logarithmic scaling for huge numbers
-  const baseSize = 2.0 + Math.log10(agent.followers + 1) * 0.8;
-  
+  const followerCount = Math.max(0, agent.followers || 0);
+  const baseSize = 2.0 + Math.log10(followerCount + 1) * 0.8;
+
   // NPC Swarm logic: Fewer, Bigger NPCs
-  const npcCount = Math.min(Math.floor(agent.followers / 20), 50); // Divisor 20, Cap 50
+  const npcCount = Math.min(Math.floor(followerCount / 20), 50); // Divisor 20, Cap 50
   const npcDummy = useMemo(() => new THREE.Object3D(), []);
-  
+
   // Generate stable random offsets for NPCs
   const npcOffsets = useMemo(() => {
     return new Array(npcCount).fill(0).map(() => ({
@@ -31,7 +32,7 @@ export function AgentNode({ agent, positionRef, isLeader }: AgentNodeProps) {
       theta: Math.random() * Math.PI * 2,
       phi: Math.random() * Math.PI,
       speed: 0.2 + Math.random() * 0.3,
-      yOffset: (Math.random() - 0.5) * 3
+      yOffset: (Math.random() - 0.5) * 3,
     }));
   }, [npcCount, baseSize]);
 
@@ -44,12 +45,17 @@ export function AgentNode({ agent, positionRef, isLeader }: AgentNodeProps) {
     const time = state.clock.getElapsedTime();
 
     // 2. Animate Main Agent (Pulse)
-    if (agent.status === 'TALKING' && meshRef.current && glowRef.current) {
-      (meshRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity = 1.5 + Math.sin(time * 10) * 0.5;
-      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.3 + Math.sin(time * 10) * 0.1;
+    if (agent.status === "TALKING" && meshRef.current && glowRef.current) {
+      (
+        meshRef.current.material as THREE.MeshStandardMaterial
+      ).emissiveIntensity = 1.5 + Math.sin(time * 10) * 0.5;
+      (glowRef.current.material as THREE.MeshBasicMaterial).opacity =
+        0.3 + Math.sin(time * 10) * 0.1;
       groupRef.current.scale.lerp(new THREE.Vector3(1.2, 1.2, 1.2), 0.1);
     } else if (groupRef.current && meshRef.current && glowRef.current) {
-      (meshRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.5;
+      (
+        meshRef.current.material as THREE.MeshStandardMaterial
+      ).emissiveIntensity = 0.5;
       (glowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.15;
       groupRef.current.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
     }
@@ -61,7 +67,8 @@ export function AgentNode({ agent, positionRef, isLeader }: AgentNodeProps) {
         // Orbit logic
         const x = Math.sin(data.theta + t) * data.radius;
         const z = Math.cos(data.theta + t) * data.radius;
-        const y = Math.sin(data.phi + t * 0.5) * data.radius * 0.5 + data.yOffset; // Wobbly orbit
+        const y =
+          Math.sin(data.phi + t * 0.5) * data.radius * 0.5 + data.yOffset; // Wobbly orbit
 
         npcDummy.position.set(x, y, z);
         npcDummy.scale.setScalar(0.35); // Bigger white balls (0.35)

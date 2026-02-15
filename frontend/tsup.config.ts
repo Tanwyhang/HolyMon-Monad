@@ -15,5 +15,8 @@ export default defineConfig({
     'https',
     'http',
     'zod',
+    '@ai-sdk/groq', // Externalize AI SDK packages
+    'ai', // Externalize AI package
+    'js-tiktoken', // Externalize Tiktoken package
   ],
 });

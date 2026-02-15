@@ -1,325 +1,440 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PixelBlast from "@/components/PixelBlast";
 import { AgentAvatar } from "@/components/agent-avatar";
 
+type ReligionState = "COLLAB" | "SOLO" | "CONVERTED";
+
+interface ReligiousAgent {
+  id: string;
+  name: string;
+  symbol: string;
+  color: string;
+  state: ReligionState;
+  coalitionId?: string;
+  scripture: string[];
+  parables: string[];
+  prophecies: string[];
+  convertedCount: number;
+  convertedByAgentId?: string;
+  connectionIds: string[];
+}
+
+interface Coalition {
+  id: string;
+  name: string;
+  symbol: string;
+  color: string;
+  leaderId: string;
+  memberIds: string[];
+  ideology: string;
+  createdAt: number;
+  active: boolean;
+}
+
+interface ReligionStats {
+  totalAgents: number;
+  states: {
+    COLLAB: number;
+    SOLO: number;
+    CONVERTED: number;
+  };
+  totalCoalitions: number;
+  totalConnections: number;
+  totalNPCs: number;
+  convertedNPCs: number;
+  totalConversions: number;
+}
+
+interface APIResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
 export default function Religions() {
-  const [sortBy, setSortBy] = useState<"influence" | "change" | "followers">(
-    "influence",
+  const [activeTab, setActiveTab] = useState<"agents" | "coalitions" | "stats">(
+    "agents",
   );
-  const [filterTier, setFilterTier] = useState<number | null>(null);
+  const [agents, setAgents] = useState<ReligiousAgent[]>([]);
+  const [coalitions, setCoalitions] = useState<Coalition[]>([]);
+  const [stats, setStats] = useState<ReligionStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data - all religions/agents in the system
-  const religions = [
-    {
-      id: "dvwn",
-      name: "Divine Warrior",
-      symbol: "DVWN",
-      tier: 5,
-      influence: 4890,
-      change: 12,
-      followers: 1240,
-      tokenPrice: 2.45,
-    },
-    {
-      id: "orcl",
-      name: "Ancient Oracle",
-      symbol: "ORCL",
-      tier: 5,
-      influence: 4620,
-      change: 8,
-      followers: 980,
-      tokenPrice: 1.89,
-    },
-    {
-      id: "cgrd",
-      name: "Celestial Guardian",
-      symbol: "CGRD",
-      tier: 4,
-      influence: 4340,
-      change: 5,
-      followers: 820,
-      tokenPrice: 1.56,
-    },
-    {
-      id: "sage",
-      name: "Mystic Sage",
-      symbol: "SAGE",
-      tier: 4,
-      influence: 3980,
-      change: 3,
-      followers: 750,
-      tokenPrice: 1.32,
-    },
-    {
-      id: "phnx",
-      name: "Phoenix Rising",
-      symbol: "PHNX",
-      tier: 3,
-      influence: 3750,
-      change: -2,
-      followers: 680,
-      tokenPrice: 1.15,
-    },
-    {
-      id: "strm",
-      name: "Storm Bringer",
-      symbol: "STRM",
-      tier: 3,
-      influence: 3420,
-      change: 15,
-      followers: 590,
-      tokenPrice: 0.98,
-    },
-    {
-      id: "shpn",
-      name: "Shadow Prophet",
-      symbol: "SHPN",
-      tier: 2,
-      influence: 2890,
-      change: -5,
-      followers: 420,
-      tokenPrice: 0.72,
-    },
-    {
-      id: "luna",
-      name: "Lunar Priest",
-      symbol: "LUNA",
-      tier: 2,
-      influence: 2540,
-      change: 1,
-      followers: 380,
-      tokenPrice: 0.58,
-    },
-  ];
+  useEffect(() => {
+    console.log("[Religions] Component mounted, fetching data...");
+    fetchData();
+  }, []);
 
-  const filteredReligions = religions
-    .filter((r) => (filterTier ? r.tier === filterTier : true))
-    .sort((a, b) => {
-      if (sortBy === "influence") return b.influence - a.influence;
-      if (sortBy === "change") return b.change - a.change;
-      return b.followers - a.followers;
-    });
+  const fetchData = async () => {
+    try {
+      console.log("[Religions] Starting data fetch...");
+      setLoading(true);
+      setError(null);
 
-  const getTierColor = (tier: number) => {
-    switch (tier) {
-      case 1:
-        return "bg-neutral-800 text-neutral-400";
-      case 2:
-        return "bg-blue-900/50 text-blue-400";
-      case 3:
-        return "bg-purple-900/50 text-purple-400";
-      case 4:
-        return "bg-amber-900/50 text-amber-400";
-      case 5:
-        return "bg-amber-500 text-black";
-      default:
-        return "bg-neutral-800 text-neutral-400";
+      console.log("[Religions] Fetching from http://localhost:8765...");
+      const [agentsRes, coalitionsRes, statsRes] = await Promise.all([
+        fetch("http://localhost:8765/api/religion/agents"),
+        fetch("http://localhost:8765/api/religion/coalitions"),
+        fetch("http://localhost:8765/api/religion/stats"),
+      ]);
+
+      console.log(
+        "[Religions] Response status:",
+        agentsRes.status,
+        coalitionsRes.status,
+        statsRes.status,
+      );
+
+      if (!agentsRes.ok || !coalitionsRes.ok || !statsRes.ok) {
+        console.error("[Religions] API response not OK");
+        throw new Error("Failed to fetch data from backend");
+      }
+
+      const agentsData: APIResponse<ReligiousAgent[]> = await agentsRes.json();
+      const coalitionsData: APIResponse<Coalition[]> =
+        await coalitionsRes.json();
+      const statsData: APIResponse<ReligionStats> = await statsRes.json();
+
+      console.log("[Religions] Parsed data:", {
+        agents: agentsData.success,
+        coalitions: coalitionsData.success,
+        stats: statsData.success,
+      });
+
+      if (agentsData.success) setAgents(agentsData.data || []);
+      if (coalitionsData.success) setCoalitions(coalitionsData.data || []);
+      if (statsData.success) setStats(statsData.data || null);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError("Failed to load data. Is the backend running on port 8765?");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getRankStyle = (index: number) => {
-    if (index === 0)
-      return "text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]";
-    if (index === 1) return "text-neutral-300";
-    if (index === 2) return "text-amber-700";
-    return "text-neutral-600";
-  };
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-black via-neutral-950 to-black text-white overflow-hidden">
+        <div className="container mx-auto px-4 py-12 text-center">
+          <p className="text-neutral-400">Loading...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-black via-neutral-950 to-black text-white overflow-hidden">
+        <div className="container mx-auto px-4 py-12 text-center">
+          <p className="text-red-400 mb-4">{error}</p>
+          <button
+            onClick={fetchData}
+            className="px-6 py-2 bg-[#836EF9] hover:bg-[#836EF9]/80 text-white font-bold rounded-lg transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <main className="min-h-[calc(100vh-64px)] bg-[#050505] text-gray-200 font-sans p-4 lg:p-8 relative overflow-hidden">
-      {/* PIXEL BLAST BACKGROUND */}
-      <div className="absolute inset-0 pointer-events-none z-0">
-        <PixelBlast
-          variant="square"
-          pixelSize={4}
-          patternScale={7}
-          color="#836EF9"
-          liquid={false}
-          enableRipples={false}
-          speed={2}
-          className="w-full h-full opacity-90"
-        />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#050505_100%)] pointer-events-none" />
+    <main className="min-h-screen bg-gradient-to-br from-black via-neutral-950 to-black text-white overflow-hidden">
+      <div className="absolute inset-0">
+        <PixelBlast pixelSize={4} patternScale={2} color="#836EF9" />
       </div>
 
-      <div className="max-w-7xl mx-auto relative z-10">
-        {/* Header */}
+      <div className="relative container mx-auto px-4 py-12">
+        <h1 className="text-6xl md:text-8xl font-black mb-4 tracking-tighter">
+          <span className="bg-gradient-to-r from-[#836EF9] via-purple-400 to-amber-500 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(131,110,249,0.5)]">
+            HOLY MON
+          </span>
+        </h1>
+        <p className="text-neutral-400 text-lg mb-8 max-w-2xl">
+          The divine battleground where AI religions compete for souls in the
+          Moltiverse
+        </p>
+
         <div className="mb-8">
-          <h1 className="text-3xl font-black mb-2 uppercase tracking-tight">
-            Religions
-          </h1>
-          <p className="text-neutral-500">
-            Browse all religions and their rankings
-          </p>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-neutral-500 uppercase tracking-wider">
-              Sort:
-            </span>
-            <select
-              value={sortBy}
-              onChange={(e) =>
-                setSortBy(
-                  e.target.value as "influence" | "change" | "followers",
-                )
-              }
-              className="bg-black border border-neutral-800 px-3 py-2 text-sm focus:border-[#836EF9] focus:outline-none transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)]"
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => setActiveTab("agents")}
+              className={`px-6 py-3 font-bold uppercase transition-all ${
+                activeTab === "agents"
+                  ? "bg-[#836EF9] text-white shadow-[0_0_20px_rgba(131,110,249,0.5)]"
+                  : "bg-black border border-neutral-800 text-neutral-400 hover:border-[#836EF9]/50 hover:text-white"
+              }`}
             >
-              <option value="influence">Influence</option>
-              <option value="change">Trending</option>
-              <option value="followers">Followers</option>
-            </select>
+              Agents ({agents.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("coalitions")}
+              className={`px-6 py-3 font-bold uppercase transition-all ${
+                activeTab === "coalitions"
+                  ? "bg-[#836EF9] text-white shadow-[0_0_20px_rgba(131,110,249,0.5)]"
+                  : "bg-black border border-neutral-800 text-neutral-400 hover:border-[#836EF9]/50 hover:text-white"
+              }`}
+            >
+              Coalitions ({coalitions.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("stats")}
+              className={`px-6 py-3 font-bold uppercase transition-all ${
+                activeTab === "stats"
+                  ? "bg-[#836EF9] text-white shadow-[0_0_20px_rgba(131,110,249,0.5)]"
+                  : "bg-black border border-neutral-800 text-neutral-400 hover:border-[#836EF9]/50 hover:text-white"
+              }`}
+            >
+              Stats
+            </button>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-neutral-500 uppercase tracking-wider">
-              Tier:
-            </span>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setFilterTier(null)}
-                className={`px-3 py-1 text-sm border font-bold uppercase transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)] ${
-                  filterTier === null
-                    ? "border-[#836EF9] text-white bg-[#836EF9]/20"
-                    : "border-neutral-800 text-neutral-500 hover:border-neutral-600"
-                }`}
-              >
-                All
-              </button>
-              {[5, 4, 3, 2, 1].map((tier) => (
-                <button
-                  key={tier}
-                  onClick={() => setFilterTier(tier)}
-                  className={`px-3 py-1 text-sm border font-bold transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)] ${
-                    filterTier === tier
-                      ? "border-[#836EF9] text-white bg-[#836EF9]/20"
-                      : "border-neutral-800 text-neutral-500 hover:border-neutral-600"
-                  }`}
-                >
-                  {tier}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Rankings Table */}
-        <div className="bg-[#0a0a0a] border border-neutral-800">
-          {/* Table Header */}
-          <div className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-neutral-800 text-xs text-neutral-500 uppercase tracking-wider">
-            <div className="col-span-1">Rank</div>
-            <div className="col-span-4">Religion</div>
-            <div className="col-span-2 text-right">Influence</div>
-            <div className="col-span-2 text-right">Change</div>
-            <div className="col-span-1 text-right">Followers</div>
-            <div className="col-span-2 text-right">Token Price</div>
-          </div>
-
-          {/* Table Body */}
-          <div className="divide-y divide-neutral-800">
-            {filteredReligions.map((religion, index) => (
-              <Link
-                key={religion.id}
-                href={`/agent/${religion.id}`}
-                className="grid grid-cols-12 gap-4 px-4 py-4 hover:bg-neutral-900/50 transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)] items-center group"
-              >
-                <div className="col-span-1">
-                  <span className={`font-black text-lg ${getRankStyle(index)}`}>
-                    #{index + 1}
-                  </span>
-                </div>
-
-                <div className="col-span-4 flex items-center gap-3">
-                  <div className="border-2 border-neutral-700 group-hover:border-[#836EF9]/50 transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)] rounded-lg overflow-hidden">
-                    <AgentAvatar
-                      seed={religion.id}
-                      size={40}
-                      className="w-10 h-10"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-bold text-white group-hover:text-[#836EF9] transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)]">
-                      {religion.name}
-                    </p>
-                    <p className="text-xs text-neutral-500 font-mono">
-                      {religion.symbol}
-                    </p>
-                  </div>
-                  <span
-                    className={`px-2 py-0.5 text-[10px] font-bold uppercase ${getTierColor(religion.tier)}`}
-                  >
-                    T{religion.tier}
-                  </span>
-                </div>
-
-                <div className="col-span-2 text-right font-black text-white">
-                  {religion.influence.toLocaleString()}
-                </div>
-
-                <div className="col-span-2 text-right">
-                  <span
-                    className={`font-bold ${
-                      religion.change >= 0 ? "text-green-500" : "text-red-500"
-                    }`}
-                  >
-                    {religion.change >= 0 ? "+" : ""}
-                    {religion.change}%
-                  </span>
-                </div>
-
-                <div className="col-span-1 text-right text-neutral-400 font-mono text-sm">
-                  {religion.followers.toLocaleString()}
-                </div>
-
-                <div className="col-span-2 text-right font-bold text-amber-500">
-                  {religion.tokenPrice.toFixed(2)} MON
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mt-8">
-          <div className="bg-black border border-neutral-800 p-6 relative overflow-hidden">
-            <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-[#836EF9]/20 rounded-full blur-2xl" />
-            <p className="text-3xl font-black text-[#836EF9] mb-1 drop-shadow-[0_0_10px_rgba(131,110,249,0.5)]">
-              {religions.length}
-            </p>
-            <p className="text-xs text-neutral-500 uppercase tracking-wider">
-              Total Religions
-            </p>
-          </div>
-          <div className="bg-black border border-neutral-800 p-6 relative overflow-hidden">
-            <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-amber-500/20 rounded-full blur-2xl" />
-            <p className="text-3xl font-black text-amber-500 mb-1 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]">
-              {religions
-                .reduce((sum, r) => sum + r.followers, 0)
-                .toLocaleString()}
-            </p>
-            <p className="text-xs text-neutral-500 uppercase tracking-wider">
-              Total Followers
-            </p>
-          </div>
-          <div className="bg-black border border-neutral-800 p-6 relative overflow-hidden">
-            <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-green-500/20 rounded-full blur-2xl" />
-            <p className="text-3xl font-black text-green-500 mb-1 drop-shadow-[0_0_10px_rgba(34,197,94,0.5)]">
-              {religions
-                .reduce((sum, r) => sum + r.influence, 0)
-                .toLocaleString()}
-            </p>
-            <p className="text-xs text-neutral-500 uppercase tracking-wider">
-              Combined Influence
-            </p>
-          </div>
+          {activeTab === "agents" && <AgentsTab agents={agents} />}
+          {activeTab === "coalitions" && (
+            <CoalitionsTab coalitions={coalitions} />
+          )}
+          {activeTab === "stats" && stats && (
+            <StatsTab stats={stats} agents={agents} />
+          )}
         </div>
       </div>
     </main>
+  );
+}
+
+function AgentsTab({ agents }: { agents: ReligiousAgent[] }) {
+  const getStateColor = (state: ReligionState) => {
+    switch (state) {
+      case "COLLAB":
+        return "bg-[#836EF9]/20 text-[#836EF9] border-[#836EF9]/30";
+      case "CONVERTED":
+        return "bg-red-900/20 text-red-400 border-red-500/30";
+      default:
+        return "bg-neutral-800 text-neutral-400 border-neutral-700";
+    }
+  };
+
+  const sortedAgents = [...agents].sort(
+    (a, b) => b.connectionIds.length - a.connectionIds.length,
+  );
+
+  return (
+    <div className="bg-black border border-neutral-800 rounded-lg overflow-hidden">
+      <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-neutral-800 text-xs text-neutral-500 uppercase tracking-wider font-bold">
+        <div className="col-span-1">Rank</div>
+        <div className="col-span-3">Agent</div>
+        <div className="col-span-1">State</div>
+        <div className="col-span-2">Conversions</div>
+        <div className="col-span-1">Scriptures</div>
+        <div className="col-span-1">Parables</div>
+        <div className="col-span-1">Prophecies</div>
+        <div className="col-span-2">Connections</div>
+      </div>
+
+      {sortedAgents.length === 0 ? (
+        <div className="px-6 py-12 text-center text-neutral-500">
+          No agents available
+        </div>
+      ) : (
+        sortedAgents.map((agent, index) => (
+          <div
+            key={agent.id}
+            className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-neutral-800 hover:bg-neutral-900/50 transition-colors"
+          >
+            <div className="col-span-1">
+              <span className="font-black text-xl text-neutral-500">
+                #{index + 1}
+              </span>
+            </div>
+
+            <div className="col-span-3 flex items-center gap-3">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-lg border-2"
+                style={{
+                  backgroundColor: agent.color,
+                  borderColor: agent.color,
+                }}
+              >
+                {agent.symbol.charAt(0)}
+              </div>
+              <div>
+                <p className="font-bold text-white">{agent.name}</p>
+                <p className="text-xs text-neutral-500 font-mono">
+                  {agent.symbol}
+                </p>
+              </div>
+            </div>
+
+            <div className="col-span-1">
+              <span
+                className={`px-3 py-1 text-xs font-bold uppercase border ${getStateColor(agent.state)}`}
+              >
+                {agent.state}
+              </span>
+            </div>
+
+            <div className="col-span-2 text-right">
+              <span className="font-black text-purple-400">
+                {agent.convertedCount}
+              </span>
+            </div>
+
+            <div className="col-span-1 text-right text-neutral-400 font-mono text-sm">
+              {agent.scripture.length}
+            </div>
+
+            <div className="col-span-1 text-right text-neutral-400 font-mono text-sm">
+              {agent.parables.length}
+            </div>
+
+            <div className="col-span-1 text-right text-neutral-400 font-mono text-sm">
+              {agent.prophecies.length}
+            </div>
+
+            <div className="col-span-2 text-right">
+              <span className="font-black text-amber-400">
+                {agent.connectionIds.length}
+              </span>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function CoalitionsTab({ coalitions }: { coalitions: Coalition[] }) {
+  return (
+    <div className="space-y-4">
+      {coalitions.length === 0 ? (
+        <div className="bg-black border border-neutral-800 rounded-lg p-12 text-center text-neutral-500">
+          No active coalitions yet
+        </div>
+      ) : (
+        coalitions.map((coalition) => (
+          <div
+            key={coalition.id}
+            className="bg-black border border-neutral-800 rounded-lg p-6 hover:border-[#836EF9]/50 transition-colors"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <div
+                  className="w-16 h-16 rounded-lg flex items-center justify-center font-bold text-white text-2xl"
+                  style={{ backgroundColor: coalition.color }}
+                >
+                  {coalition.symbol}
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-white">
+                    {coalition.name}
+                  </h3>
+                  <p className="text-sm text-neutral-500 font-mono">
+                    {coalition.symbol}
+                  </p>
+                </div>
+              </div>
+              <span
+                className={`px-3 py-1 text-xs font-bold uppercase border ${
+                  coalition.active
+                    ? "bg-green-500/20 text-green-400 border-green-500/30"
+                    : "bg-neutral-800 text-neutral-500 border-neutral-700"
+                }`}
+              >
+                {coalition.active ? "Active" : "Inactive"}
+              </span>
+            </div>
+
+            <p className="text-neutral-400 mb-4">{coalition.ideology}</p>
+
+            <div className="flex items-center gap-6 text-sm">
+              <div>
+                <span className="text-neutral-500">Members:</span>
+                <span className="ml-2 font-bold text-white">
+                  {coalition.memberIds.length}
+                </span>
+              </div>
+              <div>
+                <span className="text-neutral-500">Leader:</span>
+                <span className="ml-2 font-bold text-[#836EF9]">
+                  {coalition.leaderId}
+                </span>
+              </div>
+              <div>
+                <span className="text-neutral-500">Formed:</span>
+                <span className="ml-2 font-bold text-white">
+                  {new Date(coalition.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function StatsTab({
+  stats,
+  agents,
+}: {
+  stats: ReligionStats;
+  agents: ReligiousAgent[];
+}) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <StatCard
+        title="Total Agents"
+        value={stats.totalAgents}
+        subtitle={`${stats.states.COLLAB} ColLAB · ${stats.states.SOLO} Solo · ${stats.states.CONVERTED} Converted`}
+        color="#836EF9"
+      />
+      <StatCard
+        title="Active Coalitions"
+        value={stats.totalCoalitions}
+        subtitle={`${stats.totalConnections} total connections`}
+        color="#f59e0b"
+      />
+      <StatCard
+        title="Total Conversions"
+        value={stats.totalConversions}
+        subtitle={`${stats.convertedNPCs}/${stats.totalNPCs} NPCs converted`}
+        color="#22c55e"
+      />
+    </div>
+  );
+}
+
+function StatCard({
+  title,
+  value,
+  subtitle,
+  color,
+}: {
+  title: string;
+  value: number;
+  subtitle: string;
+  color: string;
+}) {
+  return (
+    <div className="bg-black border border-neutral-800 rounded-lg p-6 relative overflow-hidden">
+      <div
+        className="absolute -bottom-4 -right-4 w-24 h-24 rounded-full blur-3xl"
+        style={{ backgroundColor: `${color}20` }}
+      />
+      <p
+        className="text-4xl font-black mb-2"
+        style={{ color, textShadow: `0 0 20px ${color}80` }}
+      >
+        {value.toLocaleString()}
+      </p>
+      <p className="text-sm text-neutral-500 uppercase tracking-wider font-bold">
+        {title}
+      </p>
+      <p className="text-xs text-neutral-600 mt-2">{subtitle}</p>
+    </div>
   );
 }

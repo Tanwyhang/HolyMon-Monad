@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import PixelBlast from "@/components/PixelBlast";
 import { AgentAvatar } from "@/components/agent-avatar";
@@ -11,13 +11,13 @@ import type { HolyMonAgent } from "@/types/agent";
 import { useAccount } from "wagmi";
 
 interface AgentDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function AgentDetailPage({ params }: AgentDetailPageProps) {
-  const agentId = params.id;
+  const { id: agentId } = use(params);
   const [activeTab, setActiveTab] = useState("overview");
   const [agent, setAgent] = useState<HolyMonAgent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
