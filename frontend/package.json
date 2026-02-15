@@ -19,6 +19,12 @@
   "files": [
     "dist"
   ],
+  "resolutions": {
+    "lit": "^2.8.0",
+    "lit-element": "^3.3.3",
+    "lit-html": "^2.8.0",
+    "@lit/reactive-element": "^1.6.3"
+  },
   "dependencies": {
     "@babel/runtime": "^7.26.0",
     "@codemirror/autocomplete": "^6.18.3",

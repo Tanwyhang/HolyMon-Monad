@@ -29,12 +29,27 @@ const nextConfig: NextConfig = {
           return /elizaos\//.test(context);
         },
       }),
+      new webpack.NormalModuleReplacementPlugin(
+        /^lit$/,
+        require.resolve('lit')
+      ),
+      new webpack.NormalModuleReplacementPlugin(
+        /^lit-element$/,
+        require.resolve('lit-element')
+      ),
     );
     // Return modified config
     return {
       ...config,
       resolve: {
         ...config.resolve,
+        alias: {
+          ...config.resolve?.alias,
+          'lit': require.resolve('lit'),
+          'lit-element': require.resolve('lit-element'),
+          'lit-html': require.resolve('lit-html'),
+          '@lit/reactive-element': require.resolve('@lit/reactive-element'),
+        },
         fallback: {
           ...config.resolve?.fallback,
           fs: false,
@@ -44,6 +59,39 @@ const nextConfig: NextConfig = {
           worker_threads: false,
         },
       },
+      optimization: {
+        ...config.optimization,
+        runtimeChunk: 'single',
+        splitChunks: {
+          ...config.optimization?.splitChunks,
+          chunks: 'all',
+          cacheGroups: {
+            ...config.optimization?.splitChunks?.cacheGroups,
+            lit: {
+              test: /[\\/]node_modules[\\/](lit|lit-element|lit-html|@lit)[\\/]/,
+              name: 'lit',
+              priority: 20,
+              reuseExistingChunk: true,
+            },
+          },
+        },
+      },
+      externals: [
+        ...config.externals,
+        '@codemirror/autocomplete',
+        '@codemirror/commands',
+        '@codemirror/language',
+        '@codemirror/lang-markdown',
+        '@codemirror/lang-sql',
+        '@codemirror/legacy-modes',
+        '@codemirror/lint',
+        '@codemirror/search',
+        '@codemirror/state',
+        '@codemirror/view',
+        'ai',
+        '@ai-sdk/groq',
+        'js-tiktoken',
+      ],
     };
   },
   async redirects() {
