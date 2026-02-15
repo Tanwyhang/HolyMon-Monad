@@ -111,11 +111,12 @@ export default function Arena() {
           loop
           muted
           playsInline
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover opacity-40"
         >
           <source src="/banneranim.webm" type="video/webm" />
         </video>
 
+        <div className="absolute inset-0 bg-black/30" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black" />
 
         <div className="absolute inset-0 flex flex-col items-center justify-center">
