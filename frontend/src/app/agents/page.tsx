@@ -4,12 +4,21 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import PixelBlast from "@/components/PixelBlast";
 import LargeNFTAvatar from "@/components/large-nft-avatar";
+import { AgentAvatar } from "@/components/agent-avatar";
 import { getHolyMonAgents } from "@/lib/api-client";
 import type { HolyMonAgent } from "@/types/agent";
 
 export default function MyAgents() {
   const [agents, setAgents] = useState<HolyMonAgent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const hasElizaConfig = (agent: HolyMonAgent): boolean => {
+    return (
+      !!agent.elizaos &&
+      !!agent.elizaos.topics &&
+      agent.elizaos.topics.length > 0
+    );
+  };
 
   useEffect(() => {
     loadAgents();
@@ -26,6 +35,9 @@ export default function MyAgents() {
       setIsLoading(false);
     }
   };
+
+  const arenaReadyAgents = agents.filter((a) => hasElizaConfig(a));
+  const notReadyAgents = agents.filter((a) => !hasElizaConfig(a));
 
   if (isLoading) {
     return (
@@ -57,6 +69,15 @@ export default function MyAgents() {
             </h1>
             <p className="text-neutral-400 font-bold uppercase tracking-widest text-xs mt-1">
               Manage your divine squad
+            </p>
+            <p className="text-sm text-purple-400 mt-2">
+              <span className="font-bold">{arenaReadyAgents.length}</span> /{" "}
+              {agents.length} agents ready for Arena
+              {notReadyAgents.length > 0 && (
+                <span className="text-amber-500 ml-2">
+                  ({notReadyAgents.length} need ElizaOS config)
+                </span>
+              )}
             </p>
           </div>
           <Link
@@ -104,60 +125,40 @@ export default function MyAgents() {
         </div>
 
         {/* Agents Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {agents.map((agent) => (
-            <Link
-              key={agent.id}
-              href={`/agent/${agent.id}`}
-              className="group bg-black border-2 border-white p-5 hover:border-purple-500 transition-colors relative overflow-hidden shadow-[8px_8px_0px_0px_#333] hover:shadow-[8px_8px_0px_0px_#836EF9] hover:-translate-y-1 active:translate-y-0 active:shadow-none"
-            >
-              <div className="flex items-start gap-4 mb-4 relative z-10">
-                <div className="transform transition-transform group-hover:scale-105">
-                  <LargeNFTAvatar
-                    seed={agent.name}
-                    size={80}
-                    showTier={false}
-                    tier={agent.tier}
-                    traits={agent.visualTraits}
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-col gap-1">
-                    <h3 className="font-black text-xl text-white uppercase tracking-tight truncate group-hover:text-purple-500 transition-colors">
-                      {agent.name}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 bg-white text-black text-[10px] font-bold uppercase border border-black">
-                        {agent.symbol}
-                      </span>
-                      <span className="px-2 py-0.5 bg-black border border-white text-white text-[10px] font-bold uppercase">
-                        T{agent.tier}
-                      </span>
-                    </div>
+        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
+          {agents.map((agent, index) => {
+            const isArenaReady = hasElizaConfig(agent);
+
+            return (
+              <Link
+                key={agent.id}
+                href={`/agent/${agent.id}`}
+                className="group flex flex-col items-center gap-2"
+              >
+                <div className="relative animate-float" style={{ animationDelay: `${index * 0.4}s` }}>
+                  <div className="absolute inset-0 bg-[#836EF9] rounded-lg blur-lg opacity-0 group-hover:opacity-40 transition-opacity duration-300 [transition-timing-function:cubic-bezier(0,.4,.01,.99)] scale-110" />
+
+                  <div className={`relative bg-black p-1 border-2 transition-all duration-300 [transition-timing-function:cubic-bezier(0,.4,.01,.99)] rounded-lg overflow-hidden group-hover:scale-105 ${isArenaReady ? "border-white" : "border-neutral-700 group-hover:border-[#836EF9]"}`}>
+                    <AgentAvatar
+                      seed={agent.id}
+                      size={80}
+                      className="w-12 h-12 rounded-md"
+                    />
+                  </div>
+
+                  <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-[#0a0a12] ${isArenaReady ? "bg-blue-500" : "bg-neutral-600"}`} />
+
+                  <div className="absolute -top-1 -left-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center text-[8px] font-black text-black border-2 border-[#0a0a12]">
+                    {agent.tier}
                   </div>
                 </div>
-              </div>
 
-              <p className="text-sm text-neutral-400 mb-4 relative z-10 line-clamp-2 font-medium border-t-2 border-dashed border-neutral-800 pt-3 mt-2">
-                {agent.description}
-              </p>
-
-              <div className="grid grid-cols-2 gap-2 text-xs font-bold uppercase">
-                <div className="bg-[#111] p-2 border border-neutral-800">
-                  <span className="text-neutral-500 block mb-1">Influence</span>
-                  <span className="text-green-500 text-lg">
-                    {agent.influence.toLocaleString()}
-                  </span>
+                <div className="text-[10px] font-bold text-neutral-400 group-hover:text-white transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)] text-center truncate w-full">
+                  {agent.name.split(" ")[0]}
                 </div>
-                <div className="bg-[#111] p-2 border border-neutral-800">
-                  <span className="text-neutral-500 block mb-1">Staked</span>
-                  <span className="text-amber-500 text-lg">
-                    {agent.staked.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
 
           {/* Create New Agent Card */}
           <Link
@@ -175,6 +176,20 @@ export default function MyAgents() {
             <p className="text-xs text-neutral-600 uppercase font-bold tracking-widest">
               Expand your influence
             </p>
+          </Link>
+
+          <Link
+            href="/create-agent"
+            className="group flex flex-col items-center gap-2"
+          >
+            <div className="w-[56px] h-[56px] border-2 border-dashed border-neutral-700 group-hover:border-[#836EF9] bg-neutral-900/50 group-hover:bg-[#836EF9]/10 flex items-center justify-center transition-all duration-300 [transition-timing-function:cubic-bezier(0,.4,.01,.99)] rounded-lg group-hover:scale-105">
+              <span className="text-xl text-neutral-600 group-hover:text-[#836EF9] transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)]">
+                +
+              </span>
+            </div>
+            <div className="text-[10px] font-bold text-neutral-600 group-hover:text-[#836EF9] transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)]">
+              Summon
+            </div>
           </Link>
         </div>
       </div>
