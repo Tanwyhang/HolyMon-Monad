@@ -284,8 +284,18 @@ cd holymon
 # Install dependencies
 bun install
 
-# Start local development
+# Start local development (both backend & frontend)
+bun dev
+
+# Or run in production mode
 bun start
+
+# Run individual services
+bun run dev:backend    # Backend only (port 8765)
+bun run dev:frontend   # Frontend only (port 3000)
+
+# Build all services
+bun build
 ```
 
 #### Directory Structure
@@ -302,14 +312,15 @@ holymon/
 #### Run Tests
 
 ```bash
-# Contract tests
+# Run all tests
+bun test
+
+# Run individual service tests
+bun run test:backend    # Backend tests
+bun run test:frontend   # Frontend tests
+
+# Contract tests (still requires navigating to contracts dir)
 cd contracts && bun run test
-
-# Backend tests
-cd backend && bun test
-
-# Frontend tests
-cd frontend && bun test
 ```
 
 ---

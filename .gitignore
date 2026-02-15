@@ -46,4 +46,4 @@ yarn-error.log*
 plan
 
 # ElizaOS database
-.elizadb
+.elizadb    
