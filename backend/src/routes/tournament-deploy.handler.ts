@@ -1,7 +1,5 @@
-import { tournamentService } from '../services/tournament.service';
+import { tournamentServiceExtended } from '../services/tournament.service';
 import { TournamentServiceImpl } from '../services/tournament-deploy.service';
-
-import { tournamentService } from '../services/tournament.service';
 import { TournamentServiceImpl } from '../services/tournament-deploy.service';
 import type { APIResponse } from '../types';
 
@@ -46,7 +44,7 @@ export async function handleDeployAgents(req: Request): Promise<APIResponse> {
     const tournamentAgents = result.deployed || [];
 
     tournamentAgents.forEach(agent => {
-      tournamentService.addAgentToTournament(agent);
+      tournamentServiceExtended.addAgentToTournament(agent);
     });
 
     console.log(`[API] Returning ${tournamentAgents.length} deployed agents`);

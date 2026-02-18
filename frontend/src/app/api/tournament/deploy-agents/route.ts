@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const response = await fetch(`${backendUrl}/api/tournament/deploy-agents`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agentIds, address }),
+      body: JSON.stringify({ agents: agentIds, address }),
     });
 
     if (!response.ok) {
