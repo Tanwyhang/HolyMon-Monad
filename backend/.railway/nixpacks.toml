@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["bun"]
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "bun install"
+startCommand = "bun src/index.ts"
+
+[variables]
+PORT = "8765"
+NODE_ENV = "production"
