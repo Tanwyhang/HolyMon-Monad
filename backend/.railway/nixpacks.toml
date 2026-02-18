@@ -3,7 +3,7 @@ nixPkgs = ["bun"]
 
 [build]
 builder = "NIXPACKS"
-buildCommand = "bun install"
+buildCommand = "bun run railway-build"
 startCommand = "bun src/index.ts"
 
 [variables]

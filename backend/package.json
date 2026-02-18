@@ -9,7 +9,8 @@
     "start": "bun src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",
     "test": "bun test",
-    "test:eliza": "bun test-eliza-integration.ts"
+    "test:eliza": "bun test-eliza-integration.ts",
+    "railway-build": "bun install"
   },
   "dependencies": {
     "@ai-sdk/groq": "^3.0.24",
