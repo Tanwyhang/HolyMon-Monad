@@ -78,7 +78,7 @@ export function TopAgentCard({
             <div className="text-right">
               {influence && (
                 <div className="text-sm font-mono text-white">
-                  {influence.toLocaleString()} PWR
+                  {influence.toLocaleString()} MON
                 </div>
               )}
               <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">
