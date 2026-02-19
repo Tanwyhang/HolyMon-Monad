@@ -2,8 +2,20 @@ import type { ServerWebSocket } from 'bun';
 import { elizaRuntimeService } from './eliza-runtime.service';
 import { religionService } from './religion.service';
 import { x402ConnectionService } from './x402-connection.service';
-import { TOURNAMENT_AGENTS } from '../config/eliza-agents';
 import { config } from '../config/env';
+import { enhanceAgentsBatch } from './blockchain.service';
+
+// Tournament agent seeds - in production these would come from blockchain
+const AGENT_SEEDS = [
+  { id: '1', name: 'Divine Light', symbol: 'LIGHT', color: '#ffd700' },
+  { id: '2', name: 'Void Walker', symbol: 'VOID', color: '#8b5cf6' },
+  { id: '3', name: 'Iron Faith', symbol: 'IRON', color: '#ef4444' },
+  { id: '4', name: 'Emerald Spirit', symbol: 'EMRLD', color: '#10b981' },
+  { id: '5', name: 'Crystal Dawn', symbol: 'CRSTL', color: '#06b6d4' },
+  { id: '6', name: 'Cyber Monk', symbol: 'CYBER', color: '#f472b6' },
+  { id: '7', name: 'Neon Saint', symbol: 'NEON', color: '#c084fc' },
+  { id: '8', name: 'Quantum Priest', symbol: 'QNTM', color: '#60a5fa' },
+];
 
 export interface TournamentAgent {
   id: string;
@@ -67,35 +79,29 @@ class TournamentService {
   }
 
   private async initializeAgents() {
-    // In a real scenario, fetch from ERC8004/ElizaService
-    // For now, we seed with the "all" agents requested
-    const seeds = [
-      { id: '1', name: 'Divine Light', symbol: 'LIGHT', color: '#ffd700' },
-      { id: '2', name: 'Void Walker', symbol: 'VOID', color: '#8b5cf6' },
-      { id: '3', name: 'Iron Faith', symbol: 'IRON', color: '#ef4444' },
-      { id: '4', name: 'Emerald Spirit', symbol: 'EMRLD', color: '#10b981' },
-      { id: '5', name: 'Crystal Dawn', symbol: 'CRSTL', color: '#06b6d4' },
-      { id: '6', name: 'Cyber Monk', symbol: 'CYBER', color: '#f472b6' },
-      { id: '7', name: 'Neon Saint', symbol: 'NEON', color: '#c084fc' },
-      { id: '8', name: 'Quantum Priest', symbol: 'QNTM', color: '#60a5fa' },
-    ];
+    // Fetch real blockchain data for all tournament agents
+    try {
+      const enhancedAgents = await enhanceAgentsBatch(AGENT_SEEDS);
 
-    for (const seed of seeds) {
-      // Try to get real stake if possible, else random
-      let stake = BigInt(Math.floor(Math.random() * 10000)); 
-      try {
-         // Mock call to contract service if we had addresses
-         // const info = await contractService.getUserStakeInfo(...)
-      } catch (e) {}
+      for (const agent of enhancedAgents) {
+        this.agents.set(agent.id, agent);
+        console.log(`[Tournament] Initialized agent: ${agent.name} - Staked: ${agent.stakedAmount}, Followers: ${agent.followers}`);
+      }
+    } catch (error) {
+      console.error('[Tournament] Error fetching blockchain data, using fallback:', error);
+      // Fallback to random values if blockchain fetch fails
+      for (const seed of AGENT_SEEDS) {
+        let stake = BigInt(Math.floor(Math.random() * 10000));
 
-      this.agents.set(seed.id, {
-        ...seed,
-        avatar: `https://api.dicebear.com/9.x/pixel-art/svg?seed=${seed.name}`,
-        stakedAmount: stake,
-        followers: 100 + Number(stake) / 100,
-        status: 'IDLE',
-        lastAction: 0,
-      });
+        this.agents.set(seed.id, {
+          ...seed,
+          avatar: `https://api.dicebear.com/9.x/pixel-art/svg?seed=${seed.name}`,
+          stakedAmount: stake,
+          followers: 100 + Number(stake) / 100,
+          status: 'IDLE',
+          lastAction: 0,
+        });
+      }
     }
   }
 
