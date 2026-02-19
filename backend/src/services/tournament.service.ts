@@ -4,6 +4,7 @@ import { religionService } from './religion.service';
 import { x402ConnectionService } from './x402-connection.service';
 import { config } from '../config/env';
 import { enhanceAgentsBatch } from './blockchain.service';
+import { TOURNAMENT_AGENTS } from '../config/eliza-agents';
 
 // Tournament agent seeds - in production these would come from blockchain
 const AGENT_SEEDS = [
@@ -187,18 +188,8 @@ class TournamentService {
         return `🚀 ${agent.name} just launched $${agent.symbol} on TokenLaunchpad!`;
       },
       () => {
-         const amount = Math.floor(Math.random() * 5000) + 100;
          const agent = this.getRandomSafe(allAgents);
          if (!agent) return '';
-         const mapAgent = this.agents.get(agent.id);
-         if (!mapAgent) return '';
-         mapAgent.stakedAmount += BigInt(amount);
-         return `🐳 WHALE ALERT: ${amount} MON staked on ${agent.symbol}`;
-      },
-      () => {
-         const agent = this.getRandomSafe(allAgents);
-         if (!agent) return '';
-         // Get reference from Map and update
          const mapAgent = this.agents.get(agent.id);
          if (!mapAgent) return '';
          mapAgent.followers += Math.floor(Math.random() * 100);
