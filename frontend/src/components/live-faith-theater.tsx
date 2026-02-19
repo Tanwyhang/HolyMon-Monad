@@ -504,7 +504,7 @@ export default function LiveFaithTheater({
         let newTimeLeft = prev.timeLeft - 1;
 
         if (newTimeLeft <= 0) {
-          const phases = ['GENESIS', 'CRUSADE', 'APOCALYPSE', 'RESOLUTION'];
+          const phases: GameState['phase'][] = ['GENESIS', 'CRUSADE', 'APOCALYPSE', 'RESOLUTION'];
           const currentIdx = phases.indexOf(prev.phase);
           
           if (currentIdx < phases.length - 1) {
@@ -569,7 +569,7 @@ export default function LiveFaithTheater({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const phases = ['GENESIS', 'CRUSADE', 'APOCALYPSE', 'RESOLUTION'];
+  const phases: GameState['phase'][] = ['GENESIS', 'CRUSADE', 'APOCALYPSE', 'RESOLUTION'];
   const currentPhaseIndex = gameState ? phases.indexOf(gameState.phase) : -1;
 
   // Show RESOLUTION screen if phase is complete
@@ -662,78 +662,150 @@ export default function LiveFaithTheater({
     );
   }
 
+  // Draggable phase timer state
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    e.preventDefault();
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !dragRef.current) return;
+      const rect = dragRef.current.getBoundingClientRect();
+      setPosition({
+        x: e.clientX - rect.width / 2,
+        y: e.clientY - rect.height / 2,
+      });
+    };
+
+    const handleMouseUp = () => setIsDragging(false);
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
   return (
     <div className="relative w-full h-full bg-black text-white font-mono flex flex-col overflow-hidden">
-      {/* BIG PHASE TIMER AT TOP */}
-      <div className="bg-black/80 backdrop-blur-sm border-b-2 border-purple-500/50 p-4 z-20">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-8">
-          {/* PHASE INDICATOR */}
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-gray-500 uppercase tracking-wider">Phase</span>
-            <div className="flex gap-2">
-              {phases.map((phase, idx) => (
-                <div
-                  key={phase}
-                  className={`
-                    px-3 py-1 rounded text-xs font-bold uppercase tracking-wider transition-all duration-300
-                    ${currentPhaseIndex >= idx
-                      ? idx === currentPhaseIndex
-                        ? 'bg-amber-500 text-black animate-pulse border-2 border-white'
-                        : 'bg-purple-900/50 text-purple-300 border border-purple-500/30'
-                      : 'bg-gray-900 text-gray-600 border border-gray-800'
-                    }
-                  `}
-                >
-                  {phase === 'GENESIS' && '1'}
-                  {phase === 'CRUSADE' && '2'}
-                  {phase === 'APOCALYPSE' && '3'}
-                  {phase === 'RESOLUTION' && '4'}
+      {/* PHASE TIMER POPUP */}
+      {gameState && gameState.phase !== phases[3] && (
+        <div
+          ref={dragRef}
+          onMouseDown={handleMouseDown}
+          className={`
+            absolute z-50 cursor-move transition-all duration-300
+            ${isDragging ? 'scale-105' : ''}
+          `}
+          style={{
+            right: `${Math.max(16, 100 - position.x)}px`,
+            top: `${Math.max(16, position.y)}px`,
+          }}
+        >
+          <div className={`
+            bg-black/95 backdrop-blur-md border-2 border-purple-500 shadow-[0_0_30px_rgba(131,110,249,0.5)]
+            ${isExpanded ? 'rounded-xl p-5' : 'rounded-lg p-2'}
+            transition-all duration-300
+          `}>
+            <div className="flex items-center gap-4">
+              {/* PHASE INDICATOR - Compact in square mode */}
+              <div className={`flex items-center gap-2 ${isExpanded ? 'gap-3' : ''}`}>
+                {!isExpanded && (
+                  <span className="text-xs text-gray-400 uppercase tracking-wider">P</span>
+                )}
+                <div className={`flex gap-1 ${isExpanded ? 'gap-2' : ''}`}>
+                  {phases.map((phase, idx) => (
+                    <div
+                      key={phase}
+                      className={`
+                        flex items-center justify-center font-bold transition-all duration-300
+                        ${isExpanded ? 'w-10 h-10 rounded-lg text-sm' : 'w-6 h-6 rounded text-[10px]'}
+                        ${currentPhaseIndex >= idx
+                          ? idx === currentPhaseIndex
+                            ? 'bg-amber-500 text-black animate-pulse border-2 border-white'
+                            : 'bg-purple-900/50 text-purple-300 border border-purple-500/30'
+                          : 'bg-gray-900 text-gray-600 border border-gray-800'
+                        }
+                      `}
+                    >
+                      {phase === phases[0] && '1'}
+                      {phase === phases[1] && '2'}
+                      {phase === phases[2] && '3'}
+                      {phase === phases[3] && '4'}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* BIG TIMER */}
-          <div className="flex items-center gap-4">
-            <div className="text-xs text-gray-500 uppercase tracking-wider">
-              {gameState?.phase || 'CONNECTING'}
-            </div>
-            <div className="relative">
-              <div className={`
-                text-6xl md:text-7xl font-black tracking-wider font-mono
-                ${gameState?.timeLeft <= 10 && gameState.timeLeft > 0 ? 'text-red-500 animate-pulse' : 'text-amber-500'}
-              `}>
-                {gameState ? formatTime(gameState.timeLeft) : '--:--'}
               </div>
-              {currentPhaseIndex >= 0 && (
-                <div className="absolute -top-2 -right-2">
-                  <span className="px-2 py-1 bg-black text-gray-500 text-xs rounded border border-gray-700">
-                    Round {gameState?.round || 1}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* PROGRESS BAR FOR PHASE */}
-          {gameState && (
-            <div className="w-48 h-2 bg-gray-800 rounded-full overflow-hidden">
-              <div
-                className={`
-                  h-full transition-all duration-1000 ease-linear
-                  ${(gameState as any).phase === 'GENESIS' ? 'bg-yellow-500' : ''}
-                  ${(gameState as any).phase === 'CRUSADE' ? 'bg-orange-500' : ''}
-                  ${(gameState as any).phase === 'APOCALYPSE' ? 'bg-red-500' : ''}
-                  ${(gameState as any).phase === 'RESOLUTION' ? 'bg-purple-500' : ''}
-                `}
-                style={{
-                  width: `${((gameState.timeLeft % 40) / 40) * 100}%`,
+              {/* TIMER - Shows in expanded mode or as compact */}
+              {isExpanded && (
+                <>
+                  <div className="text-xs text-gray-400 uppercase tracking-wider">
+                    {gameState.phase}
+                  </div>
+                  <div className="relative">
+                    <div className={`
+                      text-3xl font-black tracking-wider font-mono
+                      ${gameState.timeLeft <= 10 && gameState.timeLeft > 0 ? 'text-red-500 animate-pulse' : 'text-amber-500'}
+                    `}>
+                      {formatTime(gameState.timeLeft)}
+                    </div>
+                    <div className="absolute -top-1 -right-1">
+                      <span className="px-2 py-0.5 bg-purple-600 text-white text-xs rounded">
+                        Round {gameState.round}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* EXPAND/TOGGLE BUTTON */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded(!isExpanded);
                 }}
-              />
+                className={`
+                  ml-2 p-1 rounded hover:bg-purple-900/30 transition-colors
+                  ${isExpanded ? 'text-purple-400' : 'text-gray-500'}
+                `}
+              >
+                <svg className={`w-4 h-4 ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
             </div>
-          )}
+
+            {/* PROGRESS BAR - Only in expanded mode */}
+            {isExpanded && (
+              <div className="mt-3 w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  className={`
+                    h-full transition-all duration-1000 ease-linear
+                    ${gameState.phase === phases[0] ? 'bg-yellow-500' : ''}
+                    ${gameState.phase === phases[1] ? 'bg-orange-500' : ''}
+                    ${gameState.phase === phases[2] ? 'bg-red-500' : ''}
+                    ${gameState.phase === phases[3] ? 'bg-purple-500' : ''}
+                  `}
+                  style={{
+                    width: `${(gameState.timeLeft / 180) * 100}%`,
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* MAIN CONTENT GRID */}
       <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden relative z-10">
