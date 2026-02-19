@@ -190,10 +190,9 @@ class TournamentService {
          const amount = Math.floor(Math.random() * 5000) + 100;
          const agent = this.getRandomSafe(allAgents);
          if (!agent) return '';
-         // Get reference from Map and update
          const mapAgent = this.agents.get(agent.id);
          if (!mapAgent) return '';
-         mapAgent.stakedAmount += BigInt(amount);
+         mapAgent.stakedAmount = BigInt(mapAgent.stakedAmount) + BigInt(amount);
          return `🐳 WHALE ALERT: ${amount} MON staked on ${agent.symbol}`;
       },
       () => {

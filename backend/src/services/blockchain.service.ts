@@ -163,7 +163,7 @@ export async function enhanceAgentWithBlockchainData(
       symbol: agent.symbol || 'AGNT',
       color: agent.color || '#836EF9',
       avatar: agent.avatar,
-      stakedAmount: blockchainData.stakedAmount,
+      stakedAmount: BigInt(blockchainData.stakedAmount),
       followers: blockchainData.followers,
       status: agent.status || 'IDLE',
       lastAction: Date.now(),
