@@ -434,6 +434,40 @@ export default function LiveFaithTheater({
   const [activeEffects, setActiveEffects] = useState<any[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Draggable phase timer state - MUST be defined before any early returns
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    e.preventDefault();
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !dragRef.current) return;
+      const rect = dragRef.current.getBoundingClientRect();
+      setPosition({
+        x: e.clientX - rect.width / 2,
+        y: e.clientY - rect.height / 2,
+      });
+    };
+
+    const handleMouseUp = () => setIsDragging(false);
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
   useEffect(() => {
     setAgents(templateAgents);
     setGameState(templateGameState);
@@ -661,40 +695,6 @@ export default function LiveFaithTheater({
       </div>
     );
   }
-
-  // Draggable phase timer state
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    e.preventDefault();
-  };
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging || !dragRef.current) return;
-      const rect = dragRef.current.getBoundingClientRect();
-      setPosition({
-        x: e.clientX - rect.width / 2,
-        y: e.clientY - rect.height / 2,
-      });
-    };
-
-    const handleMouseUp = () => setIsDragging(false);
-
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging]);
 
   return (
     <div className="relative w-full h-full bg-black text-white font-mono flex flex-col overflow-hidden">
