@@ -190,14 +190,20 @@ class TournamentService {
          const amount = Math.floor(Math.random() * 5000) + 100;
          const agent = this.getRandomSafe(allAgents);
          if (!agent) return '';
-         agent.stakedAmount += BigInt(amount);
+         // Get reference from Map and update
+         const mapAgent = this.agents.get(agent.id);
+         if (!mapAgent) return '';
+         mapAgent.stakedAmount += BigInt(amount);
          return `🐳 WHALE ALERT: ${amount} MON staked on ${agent.symbol}`;
       },
       () => {
-        const agent = this.getRandomSafe(allAgents);
-        if (!agent) return '';
-        agent.followers += Math.floor(Math.random() * 100);
-        return `📈 ${agent.symbol} is trending! Follower count surging.`;
+         const agent = this.getRandomSafe(allAgents);
+         if (!agent) return '';
+         // Get reference from Map and update
+         const mapAgent = this.agents.get(agent.id);
+         if (!mapAgent) return '';
+         mapAgent.followers += Math.floor(Math.random() * 100);
+         return `📈 ${agent.symbol} is trending! Follower count surging.`;
       }
     ];
 
