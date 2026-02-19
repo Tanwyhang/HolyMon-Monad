@@ -47,6 +47,24 @@ interface GameState {
   recentEvents: string[];
 }
 
+// Message queue for sequential chat rendering
+interface QueuedMessage {
+  id: string;
+  msg: { senderId: string; text: string; timestamp: number; typing?: boolean };
+  sender: TournamentAgent;
+  isLeft: boolean;
+  delay: number;
+  showEffect?: 'SCREEN_SHAKE' | 'FLASH' | 'GLITCH' | 'RAINBOW';
+}
+
+interface GameState {
+  phase: "GENESIS" | "CRUSADE" | "APOCALYPSE" | "RESOLUTION";
+  round: number;
+  timeLeft: number;
+  activeInteractions: Interaction[];
+  recentEvents: string[];
+}
+
 // Scripture templates for interactions
 const scriptures = {
   DEBATE: [
@@ -269,7 +287,7 @@ function getRandomItem<T>(arr: T[]): T {
 }
 
 // Typing animation effect
-function useTypingEffect(text: string, speed: number = 30) {
+function useTypingEffect(text: string, speed: number = 20) {
   const [displayedText, setDisplayedText] = useState("");
   const [isTyping, setIsTyping] = useState(true);
 
@@ -292,6 +310,62 @@ function useTypingEffect(text: string, speed: number = 30) {
   }, [text, speed]);
 
   return { displayedText, isTyping };
+}
+
+// Brutal chromatic effects for conversions
+interface ChromaticEffectProps {
+  effectType: 'SCREEN_SHAKE' | 'FLASH' | 'GLITCH' | 'RAINBOW';
+  onComplete: () => void;
+  intensity?: 'low' | 'medium' | 'high';
+}
+
+function ChromaticEffect({ effectType, onComplete, intensity = 'medium' }: ChromaticEffectProps) {
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(false);
+      setTimeout(onComplete, 100);
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [onComplete]);
+
+  if (!isVisible) return null;
+
+  const effectStyles = {
+    SCREEN_SHAKE: {
+      animation: `shake ${intensity === 'high' ? '0.3s' : '0.5s'} ease-in-out`,
+    },
+    FLASH: {
+      animation: `flash ${intensity === 'high' ? '0.6s' : '0.4s'} ease-out`,
+    },
+    GLITCH: {
+      animation: 'glitch 0.5s steps(3)',
+    },
+    RAINBOW: {
+      animation: `rainbow 1s linear infinite`,
+    },
+  };
+
+  const style = effectStyles[effectType] || {};
+
+  return (
+    <div
+      className={`fixed inset-0 pointer-events-none z-50 ${effectType === 'SCREEN_SHAKE' ? 'animate-shake' : ''}`}
+      style={style as React.CSSProperties}
+    >
+      {effectType === 'FLASH' && (
+        <div className="absolute inset-0 bg-white/50 animate-flash" />
+      )}
+      {effectType === 'GLITCH' && (
+        <div className="absolute inset-0 bg-red-500/20 animate-glitch" />
+      )}
+      {effectType === 'RAINBOW' && (
+        <div className="absolute inset-0 bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500 opacity-20 animate-rainbow" />
+      )}
+    </div>
+  );
 }
 
 // Conversion effect component
@@ -331,13 +405,22 @@ function ConversionEffect({
 function TypingMessage({ 
   msg, 
   sender, 
-  isLeft 
+  isLeft,
+  onTypingComplete 
 }: { 
   msg: { senderId: string; text: string; timestamp: number; typing?: boolean };
   sender: TournamentAgent;
   isLeft: boolean;
+  onTypingComplete: () => void;
 }) {
-  const { displayedText, isTyping } = useTypingEffect(msg.text, 15);
+  const { displayedText, isTyping } = useTypingEffect(msg.text, 25);
+
+  // Notify parent when typing is done
+  useEffect(() => {
+    if (!isTyping) {
+      onTypingComplete();
+    }
+  }, [isTyping, onTypingComplete]);
 
   return (
     <div
@@ -378,7 +461,6 @@ function TypingMessage({
         </div>
         <div className="relative">
           {displayedText}
-          {isTyping && <span className="animate-pulse">|</span>}
         </div>
       </div>
     </div>
@@ -395,23 +477,20 @@ function generateInteraction(allAgents: TournamentAgent[]): Interaction {
   const type = getRandomItem(interactionTypes);
   const typeScripts = scriptures[type];
   
-  const messages = [
-    {
-      senderId: agent1.id,
+  // Generate more messages for longer, argumentative debate
+  const messageCount = type === 'DEBATE' ? 6 : 3;
+  const messages: Array<{ senderId: string; text: string; timestamp: number }> = [];
+  const baseTime = Date.now();
+  const messageDelay = 1500; // 1.5s between messages
+  
+  for (let i = 0; i < messageCount; i++) {
+    const sender = i % 2 === 0 ? agent1.id : agent2.id;
+    messages.push({
+      senderId: sender,
       text: getRandomItem(typeScripts),
-      timestamp: Date.now() - 3000,
-    },
-    {
-      senderId: agent2.id,
-      text: getRandomItem(typeScripts),
-      timestamp: Date.now() - 1500,
-    },
-    {
-      senderId: agent1.id,
-      text: getRandomItem(typeScripts),
-      timestamp: Date.now(),
-    },
-  ];
+      timestamp: baseTime - (messageCount - 1 - i) * messageDelay,
+    });
+  }
   
   return {
     id: `int-${Date.now()}-${Math.random()}`,
@@ -432,6 +511,7 @@ export default function LiveFaithTheater({
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [agents, setAgents] = useState<TournamentAgent[]>([]);
   const [activeEffects, setActiveEffects] = useState<any[]>([]);
+  const [messageQueue, setMessageQueue] = useState<QueuedMessage[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Draggable phase timer state - MUST be defined before any early returns
@@ -468,12 +548,69 @@ export default function LiveFaithTheater({
     };
   }, [isDragging]);
 
+  // Process message queue sequentially
+  useEffect(() => {
+    if (messageQueue.length === 0) return;
+
+    const processNextMessage = () => {
+      setMessageQueue(prev => {
+        if (prev.length === 0) return prev;
+        const [next, ...remaining] = prev;
+        return remaining;
+      });
+    };
+
+    const delay = messageQueue[0]?.delay || 800;
+    const timer = setTimeout(processNextMessage, delay);
+
+    return () => clearTimeout(timer);
+  }, [messageQueue]);
+
+  // When new interaction starts, add all messages to queue with staggered delays
+  useEffect(() => {
+    if (!gameState) return;
+
+    gameState.activeInteractions.forEach(interaction => {
+      const agent1 = agents.find(a => a.id === interaction.agent1Id);
+      const agent2 = agents.find(a => a.id === interaction.agent2Id);
+      if (!agent1 || !agent2) return;
+
+      const interactionType = interaction.type;
+      
+      interaction.messages.forEach((msg, idx) => {
+        const sender = msg.senderId === interaction.agent1Id ? agent1 : agent2;
+        const isLeft = msg.senderId === interaction.agent1Id;
+        
+        // Stagger delays: 0.8s, 1.2s, 1.6s, 2.0s for each message
+        const delay = 800 + (idx * 400);
+        
+        // Show chromatic effect on conversion (last message)
+        const showEffect = idx === interaction.messages.length - 1 && interactionType === 'CONVERT';
+        
+        const queuedMsg: QueuedMessage = {
+          id: `${interaction.id}-${idx}`,
+          msg,
+          sender: sender!,
+          isLeft,
+          delay,
+          showEffect: showEffect ? 'SCREEN_SHAKE' : undefined,
+        };
+
+        setMessageQueue(prev => {
+          // Only add if not already in queue
+          if (prev.some(m => m.id === queuedMsg.id)) return prev;
+          return [...prev, queuedMsg];
+        });
+      });
+    });
+  }, [gameState, agents]);
+
   useEffect(() => {
     setAgents(templateAgents);
     setGameState(templateGameState);
   }, []);
 
-  // Fast interaction generation - every 2-3 seconds
+  // Fast interaction generation - every 1-2 seconds
   useEffect(() => {
     if (!gameState) return;
 
@@ -519,7 +656,7 @@ export default function LiveFaithTheater({
           recentEvents: events,
         };
       });
-    }, 2500);
+    }, 1500);
 
     return () => clearInterval(interval);
   }, [gameState, agents]);
@@ -883,71 +1020,30 @@ export default function LiveFaithTheater({
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-6" ref={scrollRef}>
-            {gameState.activeInteractions.length === 0 ? (
+            {messageQueue.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-gray-600 space-y-4">
                 <div className="text-4xl">🙏</div>
                 <p>Waiting for divine interactions...</p>
               </div>
             ) : (
-              gameState.activeInteractions.map((interaction) => {
-                const a1 = agents.find((a) => a.id === interaction.agent1Id);
-                const a2 = agents.find((a) => a.id === interaction.agent2Id);
-                if (!a1 || !a2) return null;
+              messageQueue.map((queued, idx) => (
+                <div
+                  key={queued.id}
+                  className="animate-in fade-in slide-in-from-bottom-4 duration-300"
+                >
+                  {queued.showEffect && (
+                    <ChromaticEffect
+                      effectType={queued.showEffect}
+                      onComplete={() => {}}
+                      intensity="high"
+                    />
+                  )}
 
-                return (
-                  <div
-                    key={interaction.id}
-                    className="animate-in fade-in slide-in-from-bottom-4 duration-500"
-                  >
-                    <div className="flex items-center justify-center mb-4">
-                      <span className={`
-                        px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2
-                        ${interaction.type === 'DEBATE' ? 'bg-red-500/30 border-2 border-red-500 text-red-300' : ''}
-                        ${interaction.type === 'CONVERT' ? 'bg-green-500/30 border-2 border-green-500 text-green-300' : ''}
-                        ${interaction.type === 'ALLIANCE' ? 'bg-blue-500/30 border-2 border-blue-500 text-blue-300' : ''}
-                        ${interaction.type === 'BETRAYAL' ? 'bg-purple-500/30 border-2 border-purple-500 text-purple-300' : ''}
-                        ${interaction.type === 'MIRACLE' ? 'bg-amber-500/30 border-2 border-amber-500 text-amber-300' : ''}
-                      `}>
-                        {getIcon(interaction.type)} {interaction.type}
-                      </span>
-                    </div>
+                  <TypingMessage key={idx} msg={queued.msg} sender={queued.sender} isLeft={queued.isLeft} onTypingComplete={() => {}} />
 
-                    {interaction.effect && (
-                      <div className={`
-                        mb-4 p-3 rounded-lg text-center font-bold text-sm uppercase
-                        animate-in zoom-in duration-300
-                        ${interaction.effect.type === 'CONVERSION' ? 'bg-green-500/90 text-black' : ''}
-                        ${interaction.effect.type === 'FOLLOWER_GAIN' ? 'bg-amber-500/90 text-black' : ''}
-                        ${interaction.effect.type === 'MIRACLE' ? 'bg-purple-500/90 text-white' : ''}
-                      `}>
-                        {interaction.effect.message}
-                      </div>
-                    )}
-
-                    <div className="space-y-3">
-                      {interaction.messages.map((msg, idx) => {
-                        const sender = msg.senderId === a1.id ? a1 : a2;
-                        const isLeft = msg.senderId === a1.id;
-
-                        return <TypingMessage key={idx} msg={msg} sender={sender} isLeft={isLeft} />;
-                      })}
-                    </div>
-
-                    {interaction.winnerId && (
-                      <div className="mt-4 p-2 rounded-lg text-center">
-                        <span className={`
-                          text-xs font-bold uppercase tracking-wider px-3 py-1 rounded
-                          ${interaction.winnerId === a1.id ? 'text-gray-400' : 'text-purple-400'}
-                        `}>
-                          {interaction.winnerId === a1.id ? a1.name : a2.name} WON THIS BATTLE!
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="my-8 h-px bg-gradient-to-r from-transparent via-purple-900/50 to-transparent" />
-                  </div>
-                );
-              })
+                  <div className="my-8 h-px bg-gradient-to-r from-transparent via-purple-900/50 to-transparent" />
+                </div>
+              ))
             )}
           </div>
         </div>
