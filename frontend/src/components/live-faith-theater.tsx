@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 import AgentNetwork3D from "./network-3d";
 
@@ -150,8 +151,193 @@ export default function LiveFaithTheater({
     );
   }
 
+  // Calculate winner based on interactions won
+  const agentWins = new Map<string, number>();
+  gameState?.activeInteractions.forEach(interaction => {
+    if (interaction.winnerId) {
+      agentWins.set(interaction.winnerId, (agentWins.get(interaction.winnerId) || 0) + 1);
+    }
+  });
+
+  const winner = agents.length > 0 ? [...agents].sort((a, b) => {
+    const winsA = agentWins.get(a.id) || 0;
+    const winsB = agentWins.get(b.id) || 0;
+    return winsB - winsA; // Sort descending by wins
+  })[0] : null;
+
+  // Format time for display
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const phases = ['GENESIS', 'CRUSADE', 'APOCALYPSE', 'RESOLUTION'];
+  const currentPhaseIndex = gameState ? phases.indexOf(gameState.phase) : -1;
+
+  // Show RESOLUTION screen if phase is complete
+  if (gameState?.phase === 'RESOLUTION') {
+    return (
+      <div className="relative w-full h-full bg-black text-white font-sans flex flex-col items-center justify-center overflow-hidden">
+        {/* Animated background */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="w-full h-full animate-pulse" style={{
+            background: 'radial-gradient(circle at center, #836EF9 0%, transparent 70%)',
+          }} />
+        </div>
+
+        <div className="relative z-10 text-center space-y-8">
+          {/* VICTORY CROWN */}
+          <div className="text-8xl mb-4 animate-bounce">👑</div>
+
+          {/* WINNER ANNOUNCEMENT */}
+          <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter text-amber-500 drop-shadow-[4px_4px_0_#836EF9] mb-6">
+            Tournament Complete!
+          </h1>
+
+          {winner && (
+            <>
+              <p className="text-2xl text-gray-400 mb-8 uppercase tracking-widest">
+                The Divine Victor
+              </p>
+
+              {/* WINNER CARD */}
+              <div className="bg-gradient-to-br from-purple-900/50 to-black border-4 border-amber-500 rounded-2xl p-8 max-w-2xl mx-auto transform hover:scale-105 transition-transform duration-500">
+                <div className="flex items-center gap-6 mb-6">
+                  <div className="w-24 h-24 rounded-xl overflow-hidden border-4 border-white">
+                    <img
+                      src={winner.avatar}
+                      alt={winner.symbol}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="text-left">
+                    <h2 className="text-4xl font-black uppercase tracking-tight mb-2" style={{ color: winner.color }}>
+                      {winner.name}
+                    </h2>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl bg-gray-800 px-3 py-1 rounded text-white font-bold">
+                        {winner.symbol}
+                      </span>
+                      <span className="text-gray-400 text-sm">
+                        {agentWins.get(winner.id) || 0} Victories
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* STATS */}
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-3xl font-bold text-white">{agentWins.get(winner.id) || 0}</div>
+                    <div className="text-xs text-gray-500 uppercase tracking-wider mt-1">Battles Won</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold text-amber-500">{winner.followers}</div>
+                    <div className="text-xs text-gray-500 uppercase tracking-wider mt-1">Followers</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold text-purple-400">{winner.stakedAmount}</div>
+                    <div className="text-xs text-gray-500 uppercase tracking-wider mt-1">MON Staked</div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* BUTTONS */}
+          <div className="flex gap-4 justify-center pt-8">
+            <button
+              onClick={() => window.location.reload()}
+              className="px-12 py-4 bg-amber-500 hover:bg-amber-400 text-black font-black uppercase tracking-widest text-xl border-4 border-black hover:translate-y-1 active:translate-y-0 transition-all duration-200 shadow-[4px_4px_0_#836EF9]"
+            >
+              Play Again
+            </button>
+            <Link
+              href="/arena"
+              className="px-12 py-4 bg-gray-800 hover:bg-gray-700 text-white font-black uppercase tracking-widest text-xl border-4 border-gray-600 hover:border-gray-500 transition-all duration-200"
+            >
+              Back to Arena
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-full h-full bg-black text-white font-mono flex flex-col overflow-hidden">
+      {/* BIG PHASE TIMER AT TOP */}
+      <div className="bg-black/80 backdrop-blur-sm border-b-2 border-purple-500/50 p-4 z-20">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-8">
+          {/* PHASE INDICATOR */}
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-gray-500 uppercase tracking-wider">Phase</span>
+            <div className="flex gap-2">
+              {phases.map((phase, idx) => (
+                <div
+                  key={phase}
+                  className={`
+                    px-3 py-1 rounded text-xs font-bold uppercase tracking-wider transition-all duration-300
+                    ${currentPhaseIndex >= idx
+                      ? idx === currentPhaseIndex
+                        ? 'bg-amber-500 text-black animate-pulse border-2 border-white'
+                        : 'bg-purple-900/50 text-purple-300 border border-purple-500/30'
+                      : 'bg-gray-900 text-gray-600 border border-gray-800'
+                    }
+                  `}
+                >
+                  {phase === 'GENESIS' && '1'}
+                  {phase === 'CRUSADE' && '2'}
+                  {phase === 'APOCALYPSE' && '3'}
+                  {phase === 'RESOLUTION' && '4'}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* BIG TIMER */}
+          <div className="flex items-center gap-4">
+            <div className="text-xs text-gray-500 uppercase tracking-wider">
+              {gameState?.phase || 'CONNECTING'}
+            </div>
+            <div className="relative">
+              <div className={`
+                text-6xl md:text-7xl font-black tracking-wider font-mono
+                ${gameState?.timeLeft <= 10 && gameState.timeLeft > 0 ? 'text-red-500 animate-pulse' : 'text-amber-500'}
+              `}>
+                {gameState ? formatTime(gameState.timeLeft) : '--:--'}
+              </div>
+              {currentPhaseIndex >= 0 && (
+                <div className="absolute -top-2 -right-2">
+                  <span className="px-2 py-1 bg-black text-gray-500 text-xs rounded border border-gray-700">
+                    Round {gameState?.round || 1}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* PROGRESS BAR FOR PHASE */}
+          {gameState && (
+            <div className="w-48 h-2 bg-gray-800 rounded-full overflow-hidden">
+              <div
+                className={`
+                  h-full transition-all duration-1000 ease-linear
+                  ${(gameState as any).phase === 'GENESIS' ? 'bg-yellow-500' : ''}
+                  ${(gameState as any).phase === 'CRUSADE' ? 'bg-orange-500' : ''}
+                  ${(gameState as any).phase === 'APOCALYPSE' ? 'bg-red-500' : ''}
+                  ${(gameState as any).phase === 'RESOLUTION' ? 'bg-purple-500' : ''}
+                `}
+                style={{
+                  width: `${((gameState.timeLeft % 40) / 40) * 100}%`,
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* MAIN CONTENT GRID */}
       <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden relative z-10">
         {/* LEFT: AGENT ROSTER (2 cols) */}
