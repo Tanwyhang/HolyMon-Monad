@@ -9,6 +9,7 @@ import { WrapMon } from "@/components/wrap-mon";
 import { StakeMon } from "@/components/stake-mon";
 import { TopAgentCard } from "@/components/top-agent-card";
 import { useAccount, useBalance, useReadContract } from "wagmi";
+import { formatEther } from "viem";
 import { WMON_CONTRACT } from "@/lib/constants/wmon";
 import { getHolyMonAgents } from "@/lib/api-client";
 
@@ -35,6 +36,33 @@ export default function Dashboard() {
     functionName: "balanceOf",
     args: address ? [address] : undefined,
   });
+
+  const uniqueOwners = [
+    "0x7CCa7E8bb1BA5c53F17a24C0a4Ee7e7cA12157b4" as `0x${string}`,
+    "0x0fd6B881b208d2b0b7Be11F1eB005A2873dD5D2e" as `0x${string}`,
+  ];
+
+  const ownerBalances = useBalance({
+    address: uniqueOwners[0],
+  });
+
+  const ownerBalances2 = useBalance({
+    address: uniqueOwners[1],
+  });
+
+  const getOwnerBalance = (ownerAddress: string) => {
+    if (ownerAddress === uniqueOwners[0]) {
+      return ownerBalances.data?.value
+        ? Number(formatEther(ownerBalances.data.value))
+        : 0;
+    }
+    if (ownerAddress === uniqueOwners[1]) {
+      return ownerBalances2.data?.value
+        ? Number(formatEther(ownerBalances2.data.value))
+        : 0;
+    }
+    return 0;
+  };
 
   const liquidMon = monBalance?.value
     ? (Number(monBalance.value) / 1e18).toFixed(2)
@@ -127,8 +155,7 @@ export default function Dashboard() {
       rank: 1,
       color: "#ffd700",
       tier: 3,
-      influence: 5200,
-      owner: "0x1234567890abcdef1234567890abcdef12345678",
+      owner: "0x7CCa7E8bb1BA5c53F17a24C0a4Ee7e7cA12157b4",
     },
     {
       id: "2",
@@ -137,8 +164,7 @@ export default function Dashboard() {
       rank: 2,
       color: "#8b5cf6",
       tier: 3,
-      influence: 4800,
-      owner: "0xabcdef1234567890abcdef1234567890abcdef12",
+      owner: "0x0fd6B881b208d2b0b7Be11F1eB005A2873dD5D2e",
     },
     {
       id: "3",
@@ -147,8 +173,7 @@ export default function Dashboard() {
       rank: 3,
       color: "#ef4444",
       tier: 2,
-      influence: 4200,
-      owner: "0x9876543210fedcba9876543210fedcba98765432",
+      owner: "0x0fd6B881b208d2b0b7Be11F1eB005A2873dD5D2e",
     },
     {
       id: "4",
@@ -157,8 +182,7 @@ export default function Dashboard() {
       rank: 4,
       color: "#10b981",
       tier: 2,
-      influence: 3800,
-      owner: "0xfedcba0987654321fedcba0987654321fedcba09",
+      owner: "0x7CCa7E8bb1BA5c53F17a24C0a4Ee7e7cA12157b4",
     },
   ];
 
@@ -313,7 +337,7 @@ export default function Dashboard() {
                 rank={agent.rank}
                 color={agent.color}
                 tier={agent.tier}
-                influence={agent.influence}
+                influence={getOwnerBalance(agent.owner)}
                 owner={agent.owner}
               />
             ))}
