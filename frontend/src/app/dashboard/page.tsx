@@ -7,6 +7,7 @@ import { MarketChart } from "@/components/market-chart";
 import PixelBlast from "@/components/PixelBlast";
 import { WrapMon } from "@/components/wrap-mon";
 import { StakeMon } from "@/components/stake-mon";
+import { TopAgentCard } from "@/components/top-agent-card";
 import { useAccount, useBalance, useReadContract } from "wagmi";
 import { WMON_CONTRACT } from "@/lib/constants/wmon";
 import { getHolyMonAgents } from "@/lib/api-client";
@@ -115,6 +116,49 @@ export default function Dashboard() {
       tier: 2,
       status: "IDLE",
       influence: 1400,
+    },
+  ];
+
+  const topAgents = [
+    {
+      id: "1",
+      name: "Divine Light",
+      symbol: "LIGHT",
+      rank: 1,
+      color: "#ffd700",
+      tier: 3,
+      influence: 5200,
+      owner: "0x1234567890abcdef1234567890abcdef12345678",
+    },
+    {
+      id: "2",
+      name: "Void Walker",
+      symbol: "VOID",
+      rank: 2,
+      color: "#8b5cf6",
+      tier: 3,
+      influence: 4800,
+      owner: "0xabcdef1234567890abcdef1234567890abcdef12",
+    },
+    {
+      id: "3",
+      name: "Iron Faith",
+      symbol: "IRON",
+      rank: 3,
+      color: "#ef4444",
+      tier: 2,
+      influence: 4200,
+      owner: "0x9876543210fedcba9876543210fedcba98765432",
+    },
+    {
+      id: "4",
+      name: "Emerald Spirit",
+      symbol: "EMRLD",
+      rank: 4,
+      color: "#10b981",
+      tier: 2,
+      influence: 3800,
+      owner: "0xfedcba0987654321fedcba0987654321fedcba09",
     },
   ];
 
@@ -237,6 +281,43 @@ export default function Dashboard() {
               )}
             </div>
           ))}
+        </div>
+
+        {/* SECTION 1.5: TOP AGENTS */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-neutral-800/50">
+            <h2 className="text-lg font-bold text-white tracking-wide">
+              TOP AGENTS
+            </h2>
+            <Link
+              href="https://monad-testnet.socialscan.io/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-neutral-500 hover:text-[#836EF9] transition-colors [transition-timing-function:cubic-bezier(0,.4,.01,.99)] uppercase tracking-wider flex items-center gap-1"
+            >
+              View All
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+              </svg>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {topAgents.map((agent) => (
+              <TopAgentCard
+                key={agent.id}
+                id={agent.id}
+                name={agent.name}
+                symbol={agent.symbol}
+                rank={agent.rank}
+                color={agent.color}
+                tier={agent.tier}
+                influence={agent.influence}
+                owner={agent.owner}
+              />
+            ))}
+          </div>
         </div>
 
         {/* SECTION 2: FEATURED TOURNAMENT HERO */}
@@ -421,7 +502,7 @@ export default function Dashboard() {
                   {userAgents
                     .reduce((sum, a) => sum + a.influence, 0)
                     .toLocaleString()}{" "}
-                  PWR
+                  MON
                 </div>
               </div>
             </div>
