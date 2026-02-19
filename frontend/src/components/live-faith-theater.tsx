@@ -28,9 +28,15 @@ interface Interaction {
     senderId: string;
     text: string;
     timestamp: number;
+    typing?: boolean;
   }>;
   winnerId?: string;
   timestamp: number;
+  effect?: {
+    type: "CONVERSION" | "FOLLOWER_GAIN" | "MIRACLE";
+    message: string;
+    agentId: string;
+  };
 }
 
 interface GameState {
@@ -262,6 +268,65 @@ function getRandomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+// Typing animation effect
+function useTypingEffect(text: string, speed: number = 30) {
+  const [displayedText, setDisplayedText] = useState("");
+  const [isTyping, setIsTyping] = useState(true);
+
+  useEffect(() => {
+    setIsTyping(true);
+    setDisplayedText("");
+    let index = 0;
+    
+    const interval = setInterval(() => {
+      if (index < text.length) {
+        setDisplayedText(prev => prev + text[index]);
+        index++;
+      } else {
+        setIsTyping(false);
+        clearInterval(interval);
+      }
+    }, speed);
+
+    return () => clearInterval(interval);
+  }, [text, speed]);
+
+  return { displayedText, isTyping };
+}
+
+// Conversion effect component
+function ConversionEffect({ 
+  effect, 
+  agent 
+}: { 
+  effect: { type: string; message: string; agentId: string }; 
+  agent: TournamentAgent | undefined;
+}) {
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(false), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!isVisible || !agent) return null;
+
+  return (
+    <div 
+      className={`
+        absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg font-bold text-sm uppercase tracking-wider
+        animate-in fade-in zoom-in duration-300
+        ${effect.type === 'CONVERSION' ? 'bg-green-500/90 text-black border-2 border-green-300' : ''}
+        ${effect.type === 'FOLLOWER_GAIN' ? 'bg-amber-500/90 text-black border-2 border-amber-300' : ''}
+        ${effect.type === 'MIRACLE' ? 'bg-purple-500/90 text-white border-2 border-purple-300' : ''}
+      `}
+    >
+      {effect.message}
+      <div className="text-xs mt-1 opacity-75">by {agent.name}</div>
+    </div>
+  );
+}
+
 // Generate a new interaction using scripture templates
 function generateInteraction(allAgents: TournamentAgent[]): Interaction {
   const activeAgents = allAgents.filter(a => !a.id.startsWith('npc'));
@@ -308,6 +373,7 @@ export default function LiveFaithTheater({
 }) {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [agents, setAgents] = useState<TournamentAgent[]>([]);
+  const [activeEffects, setActiveEffects] = useState<any[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -339,9 +405,19 @@ export default function LiveFaithTheater({
         const agent1 = agents.find(a => a.id === newInteraction.agent1Id);
         const agent2 = agents.find(a => a.id === newInteraction.agent2Id);
         const winnerName = newInteraction.winnerId === newInteraction.agent1Id ? agent1?.name : agent2?.name;
+        const winnerAgent = newInteraction.winnerId === newInteraction.agent1Id ? agent1 : agent2;
+
+        // Add visual effects
+        const newEffect = {
+          id: `effect-${Date.now()}`,
+          type: 'CONVERSION',
+          message: `${winnerName} WON!`,
+          agentId: newInteraction.winnerId!,
+        };
+        setActiveEffects(prev => [newEffect, ...prev].slice(0, 3));
 
         const events = [
-          `${winnerName} won the ${newInteraction.type}!`,
+          `${winnerName} won a ${newInteraction.type}!`,
           `${newInteraction.type}: ${agent1?.name} vs ${agent2?.name}`,
         ];
 
@@ -668,6 +744,14 @@ export default function LiveFaithTheater({
 
         {/* CENTER: CHAT STREAM (4 cols) */}
         <div className="col-span-4 flex flex-col bg-black/20 border-r border-purple-900/30 z-10 relative pointer-events-auto">
+          {/* Visual Effects Overlay */}
+          <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
+            {activeEffects.map((effect) => {
+              const agent = agents.find(a => a.id === effect.agentId);
+              return <ConversionEffect key={effect.id} effect={effect} agent={agent} />;
+            })}
+          </div>
+
           <div className="flex-1 overflow-y-auto p-6 space-y-6" ref={scrollRef}>
             {gameState.activeInteractions.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-gray-600 space-y-4">
@@ -686,15 +770,35 @@ export default function LiveFaithTheater({
                     className="animate-in fade-in slide-in-from-bottom-4 duration-500"
                   >
                     <div className="flex items-center justify-center mb-4">
-                      <span className="px-3 py-1 bg-purple-900/30 border border-purple-500/30 rounded-full text-xs font-bold text-purple-300 flex items-center gap-2">
+                      <span className={`
+                        px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2
+                        ${interaction.type === 'DEBATE' ? 'bg-red-500/30 border-2 border-red-500 text-red-300' : ''}
+                        ${interaction.type === 'CONVERT' ? 'bg-green-500/30 border-2 border-green-500 text-green-300' : ''}
+                        ${interaction.type === 'ALLIANCE' ? 'bg-blue-500/30 border-2 border-blue-500 text-blue-300' : ''}
+                        ${interaction.type === 'BETRAYAL' ? 'bg-purple-500/30 border-2 border-purple-500 text-purple-300' : ''}
+                        ${interaction.type === 'MIRACLE' ? 'bg-amber-500/30 border-2 border-amber-500 text-amber-300' : ''}
+                      `}>
                         {getIcon(interaction.type)} {interaction.type}
                       </span>
                     </div>
+
+                    {interaction.effect && (
+                      <div className={`
+                        mb-4 p-3 rounded-lg text-center font-bold text-sm uppercase
+                        animate-in zoom-in duration-300
+                        ${interaction.effect.type === 'CONVERSION' ? 'bg-green-500/90 text-black' : ''}
+                        ${interaction.effect.type === 'FOLLOWER_GAIN' ? 'bg-amber-500/90 text-black' : ''}
+                        ${interaction.effect.type === 'MIRACLE' ? 'bg-purple-500/90 text-white' : ''}
+                      `}>
+                        {interaction.effect.message}
+                      </div>
+                    )}
 
                     <div className="space-y-3">
                       {interaction.messages.map((msg, idx) => {
                         const sender = msg.senderId === a1.id ? a1 : a2;
                         const isLeft = msg.senderId === a1.id;
+                        const { displayedText, isTyping } = useTypingEffect(msg.text, 15);
 
                         return (
                           <div
@@ -705,31 +809,55 @@ export default function LiveFaithTheater({
                             )}
                           >
                             <div
-                              className="w-8 h-8 rounded shrink-0 bg-gray-800 overflow-hidden mt-1 ring-1 ring-offset-1 ring-offset-black"
+                              className={`
+                                w-8 h-8 rounded shrink-0 bg-gray-800 overflow-hidden mt-1 ring-1 ring-offset-1 ring-offset-black
+                                ${sender.status === 'TALKING' ? 'ring-2 ring-green-500 animate-pulse' : ''}
+                              `}
                               style={{ "--tw-ring-color": sender.color } as any}
                             >
                               <img src={sender.avatar} alt={sender.symbol} />
                             </div>
                             <div
                               className={cn(
-                                "p-3 rounded-2xl text-sm leading-relaxed",
+                                "p-3 rounded-2xl text-sm leading-relaxed relative",
                                 isLeft
                                   ? "bg-gray-900 text-gray-200 rounded-tl-none"
                                   : "bg-purple-900/20 text-purple-100 rounded-tr-none",
                               )}
                             >
                               <div
-                                className="text-[10px] font-bold opacity-50 mb-1"
+                                className="text-[10px] font-bold opacity-50 mb-1 flex items-center gap-2"
                                 style={{ color: sender.color }}
                               >
                                 {sender.name}
+                                {isTyping && (
+                                  <span className="flex gap-1">
+                                    <span className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                    <span className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                    <span className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                  </span>
+                                )}
                               </div>
-                              {msg.text}
+                              <div className="relative">
+                                {displayedText}
+                                {isTyping && <span className="animate-pulse">|</span>}
+                              </div>
                             </div>
                           </div>
                         );
                       })}
                     </div>
+
+                    {interaction.winnerId && (
+                      <div className="mt-4 p-2 rounded-lg text-center">
+                        <span className={`
+                          text-xs font-bold uppercase tracking-wider px-3 py-1 rounded
+                          ${interaction.winnerId === a1.id ? 'text-gray-400' : 'text-purple-400'}
+                        `}>
+                          {interaction.winnerId === a1.id ? a1.name : a2.name} WON THIS BATTLE!
+                        </span>
+                      </div>
+                    )}
 
                     <div className="my-8 h-px bg-gradient-to-r from-transparent via-purple-900/50 to-transparent" />
                   </div>
