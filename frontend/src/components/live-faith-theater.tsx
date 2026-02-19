@@ -41,99 +41,121 @@ interface GameState {
   recentEvents: string[];
 }
 
+// Template data
+const templateAgents: TournamentAgent[] = [
+  {
+    id: "1",
+    name: "Divine Warrior",
+    symbol: "DVWN",
+    color: "#ffd700",
+    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=dvwn",
+    stakedAmount: "1000",
+    followers: 245,
+    status: "TALKING",
+    lastAction: Date.now(),
+  },
+  {
+    id: "2",
+    name: "Void Walker",
+    symbol: "VOID",
+    color: "#8b5cf6",
+    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=void",
+    stakedAmount: "800",
+    followers: 189,
+    status: "IDLE",
+    lastAction: Date.now() - 5000,
+  },
+  {
+    id: "3",
+    name: "Iron Faith",
+    symbol: "IRON",
+    color: "#ef4444",
+    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=iron",
+    stakedAmount: "650",
+    followers: 167,
+    status: "IDLE",
+    lastAction: Date.now() - 10000,
+  },
+  {
+    id: "4",
+    name: "Emerald Spirit",
+    symbol: "EMRLD",
+    color: "#10b981",
+    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=emerald",
+    stakedAmount: "500",
+    followers: 134,
+    status: "TALKING",
+    lastAction: Date.now() - 2000,
+  },
+];
+
+const templateInteractions: Interaction[] = [
+  {
+    id: "int1",
+    type: "DEBATE",
+    agent1Id: "1",
+    agent2Id: "4",
+    messages: [
+      {
+        senderId: "1",
+        text: "The sacred path requires absolute devotion. How can one follow two masters?",
+        timestamp: Date.now() - 10000,
+      },
+      {
+        senderId: "4",
+        text: "Nature teaches us that balance flows between many sources. Flexibility is strength.",
+        timestamp: Date.now() - 5000,
+      },
+      {
+        senderId: "1",
+        text: "Flexibility is the path of the weak. Choose your banner and stand firm!",
+        timestamp: Date.now(),
+      },
+    ],
+    winnerId: "1",
+    timestamp: Date.now(),
+  },
+  {
+    id: "int2",
+    type: "CONVERT",
+    agent1Id: "2",
+    agent2Id: "3",
+    messages: [
+      {
+        senderId: "2",
+        text: "The void offers clarity through emptiness. Your rigid faith blinds you.",
+        timestamp: Date.now() - 8000,
+      },
+      {
+        senderId: "3",
+        text: "Never! My armor has weathered countless storms. Your void is merely another shadow.",
+        timestamp: Date.now() - 3000,
+      },
+    ],
+    timestamp: Date.now(),
+  },
+];
+
+const templateGameState: GameState = {
+  phase: "CRUSADE",
+  round: 2,
+  timeLeft: 185,
+  activeInteractions: templateInteractions,
+  recentEvents: ["Divine Warrior gained 12 followers", "Void Walker initiated a debate"],
+};
+
 export default function LiveFaithTheater({
   onGlobalError,
 }: {
   onGlobalError?: (error: string) => void;
 }) {
-  const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [connected, setConnected] = useState(false);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [agents, setAgents] = useState<TournamentAgent[]>([]);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const backendUrl =
-      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8765";
-    const wsUrl =
-      backendUrl.replace("http://", "ws://").replace("https://", "wss://") +
-      "/tournament/ws";
-
-    console.log("[LiveFaithTheater] Connecting to WebSocket:", wsUrl);
-
-    try {
-      const ws = new WebSocket(wsUrl);
-
-      ws.onopen = () => {
-        console.log("Connected to Tournament Arena");
-        setConnected(true);
-        setConnectionError(null);
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === "INIT" || data.type === "UPDATE") {
-            setAgents(data.payload.agents);
-            setGameState(data.payload.gameState);
-          }
-        } catch (e) {
-          console.error("Failed to parse WS message", e);
-        }
-      };
-
-      ws.onclose = (event) => {
-        console.log(
-          "Disconnected from Tournament Arena",
-          event.code,
-          event.reason,
-        );
-        setConnected(false);
-
-        if (event.code !== 1000) {
-          const errorMsg = `WebSocket connection closed (Code: ${event.code}). ${event.reason || "No reason provided."}`;
-          setConnectionError(errorMsg);
-          console.error("[LiveFaithTheater]", errorMsg);
-
-          if (onGlobalError) {
-            onGlobalError(errorMsg);
-          } else {
-            window.dispatchEvent(
-              new CustomEvent("tournament-error", { detail: errorMsg }),
-            );
-          }
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error("[LiveFaithTheater] WebSocket error:", error);
-        const errorMsg = `Failed to connect to tournament server. Is the backend running?`;
-        setConnectionError(errorMsg);
-
-        if (onGlobalError) {
-          onGlobalError(errorMsg);
-        } else {
-          window.dispatchEvent(
-            new CustomEvent("tournament-error", { detail: errorMsg }),
-          );
-        }
-      };
-
-      setSocket(ws);
-    } catch (error) {
-      console.error("[LiveFaithTheater] Failed to create WebSocket:", error);
-      const errorMsg = `Failed to initialize WebSocket connection ${error instanceof Error ? error.message : "Unknown error"}`;
-      setConnectionError(errorMsg);
-
-      if (onGlobalError) {
-        onGlobalError(errorMsg);
-      } else {
-        window.dispatchEvent(
-          new CustomEvent("tournament-error", { detail: errorMsg }),
-        );
-      }
-    }
+    setAgents(templateAgents);
+    setGameState(templateGameState);
   }, []);
 
   // Auto-scroll chat
@@ -143,10 +165,10 @@ export default function LiveFaithTheater({
     }
   }, [gameState?.activeInteractions]);
 
-  if (!connected || !gameState) {
+  if (!gameState) {
     return (
       <div className="flex items-center justify-center h-full text-purple-400 font-mono animate-pulse">
-        CONNECTING TO HOLYMON NETWORK...
+        INITIALIZING HOLYMON ARENA...
       </div>
     );
   }

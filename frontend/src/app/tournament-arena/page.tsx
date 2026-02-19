@@ -28,28 +28,12 @@ export default function TournamentArena() {
   }, []);
 
   const handleDeployAgents = async (selectedAgents: HolyMonAgent[]) => {
-    const response = await fetch("/api/tournament/deploy-agents", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        agents: selectedAgents.map((a) => ({
-          id: a.id,
-          name: a.name,
-          symbol: a.symbol,
-          description: a.description,
-          color: a.visualTraits?.colorScheme || '#836EF9',
-        })),
-        address,
-      }),
+    console.log("Deploying agents:", selectedAgents);
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        resolve();
+      }, 1000);
     });
-
-    const data = await response.json();
-
-    if (!data.success) {
-      throw new Error(data.error || "Failed to deploy agents");
-    }
-
-    return data;
   };
 
   if (globalError) {

@@ -28,124 +28,64 @@ interface ReligionStats {
   totalConversions: number;
 }
 
+// Template data
+const templateStats: ReligionStats = {
+  totalAgents: 24,
+  states: {
+    COLLAB: 8,
+    SOLO: 12,
+    CONVERTED: 4,
+  },
+  totalCoalitions: 3,
+  totalConnections: 15,
+  totalNPCs: 100,
+  convertedNPCs: 67,
+  totalConversions: 71,
+};
+
+const templateCoalitions: Coalition[] = [
+  {
+    id: "coal1",
+    name: "Divine Crusade",
+    symbol: "CRSD",
+    color: "#ffd700",
+    leaderId: "1",
+    memberIds: ["1", "3", "5"],
+    ideology: "Absolute devotion through conquest",
+    createdAt: Date.now() - 3600000,
+    active: true,
+  },
+  {
+    id: "coal2",
+    name: "Void Alliance",
+    symbol: "VOID",
+    color: "#8b5cf6",
+    leaderId: "2",
+    memberIds: ["2", "4", "6"],
+    ideology: "Balance through emptiness",
+    createdAt: Date.now() - 7200000,
+    active: true,
+  },
+  {
+    id: "coal3",
+    name: "Nature's Pact",
+    symbol: "EMRL",
+    color: "#10b981",
+    leaderId: "7",
+    memberIds: ["7", "8"],
+    ideology: "Growth through harmony",
+    createdAt: Date.now() - 5400000,
+    active: true,
+  },
+];
+
 export default function TournamentStats({
   onGlobalError,
 }: {
   onGlobalError?: (error: string) => void;
 }) {
-  const [stats, setStats] = useState<ReligionStats | null>(null);
-  const [coalitions, setCoalitions] = useState<Coalition[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const backendUrl =
-    process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8765";
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        console.log("[TournamentStats] Fetching from:", backendUrl);
-
-        const [statsRes, coalitionsRes] = await Promise.all([
-          fetch(`${backendUrl}/api/religion/stats`),
-          fetch(`${backendUrl}/api/religion/coalitions`),
-        ]);
-
-        console.log(
-          "[TournamentStats] Response status:",
-          statsRes.status,
-          coalitionsRes.status,
-        );
-
-        if (!statsRes.ok || !coalitionsRes.ok) {
-          const errorMsg = `Failed to fetch stats: stats=${statsRes.status}, coalitions=${coalitionsRes.status}`;
-          console.error("[TournamentStats]", errorMsg);
-          setError(errorMsg);
-
-          if (onGlobalError) {
-            onGlobalError(errorMsg);
-          } else {
-            window.dispatchEvent(
-              new CustomEvent("tournament-error", { detail: errorMsg }),
-            );
-          }
-          return;
-        }
-
-        const [statsData, coalitionsData] = await Promise.all([
-          statsRes.json(),
-          coalitionsRes.json(),
-        ]);
-
-        console.log(
-          "[TournamentStats] Data loaded:",
-          statsData.success,
-          coalitionsData.success,
-        );
-
-        if (!statsData.success || !coalitionsData.success) {
-          const errorMsg = "API returned error response";
-          console.error("[TournamentStats]", errorMsg);
-          setError(errorMsg);
-
-          if (onGlobalError) {
-            onGlobalError(errorMsg);
-          } else {
-            window.dispatchEvent(
-              new CustomEvent("tournament-error", { detail: errorMsg }),
-            );
-          }
-          return;
-        }
-
-        setStats(statsData.data);
-        setCoalitions(coalitionsData.data || []);
-        setError(null);
-        setLoading(false);
-      } catch (err) {
-        console.error("Failed to fetch religion stats:", err);
-        const errorMsg = err instanceof Error ? err.message : "Unknown error";
-        setError(errorMsg);
-
-        if (onGlobalError) {
-          onGlobalError(errorMsg);
-        } else {
-          window.dispatchEvent(
-            new CustomEvent("tournament-error", { detail: errorMsg }),
-          );
-        }
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-    const interval = setInterval(fetchStats, 5000);
-
-    return () => clearInterval(interval);
-  }, [backendUrl, onGlobalError]);
-
-  if (loading) {
-    return (
-      <div className="bg-black/60 border border-purple-500/30 rounded-lg p-4 text-sm">
-        <div className="flex items-center gap-2 text-purple-400">
-          <div className="w-4 h-4 border-2 border-purple-500 border-t-purple-500 rounded-full animate-spin" />
-          <span>Loading stats...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-900/30 border border-red-500/30 rounded-lg p-4 text-sm">
-        <p className="text-red-400">Error: {error}</p>
-      </div>
-    );
-  }
-
-  if (!stats) {
-    return null;
-  }
+  const [stats] = useState<ReligionStats>(templateStats);
+  const [coalitions] = useState<Coalition[]>(templateCoalitions);
 
   return (
     <div className="space-y-4">
