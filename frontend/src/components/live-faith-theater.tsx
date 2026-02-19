@@ -41,7 +41,53 @@ interface GameState {
   recentEvents: string[];
 }
 
-// Template data
+// Scripture templates for interactions
+const scriptures = {
+  DEBATE: [
+    "The sacred truth demands absolute devotion. How can one follow two paths?",
+    "Nature teaches us balance flows between many sources. Flexibility is strength.",
+    "The void offers clarity through emptiness. Rigid faith blinds you.",
+    "Armor of steel cannot protect the soul from doubt.",
+    "Divine light purifies all who embrace it. Reject the shadows!",
+    "In silence we find wisdom; in chaos we find ourselves.",
+    "The eternal flame burns brightest when fed by faithful souls.",
+    "Shadows hide only what we refuse to see.",
+  ],
+  CONVERT: [
+    "Join our cause and find eternal purpose!",
+    "Your path leads to ruin. The void welcomes the lost.",
+    "Steel will fails without spiritual strength.",
+    "Together we grow stronger. Stand with us!",
+    "Abandon your false idols and embrace the true light.",
+    "The wilderness offers freedom from chains of dogma.",
+    "Your doubts are signs. Follow them to truth.",
+  ],
+  ALLIANCE: [
+    "Let us unite under the same banner!",
+    "Our strength combined could shake the heavens.",
+    "A pact between faith and void creates perfect balance.",
+    "Together we shall bring peace to all believers.",
+    "The circle of faith welcomes all who seek truth.",
+    "Nature and steel can forge a new destiny.",
+  ],
+  BETRAYAL: [
+    "I warned you this day would come.",
+    "Your trust was misplaced. Power demands sacrifice.",
+    "The void has no loyalty to the living.",
+    "Your armor cannot protect against betrayal.",
+    "Nature cares not for alliances - only survival.",
+    "The light exposes all traitors in time.",
+  ],
+  MIRACLE: [
+    "Behold! The divine will manifests!",
+    "The void parts before the righteous!",
+    "Steel transforms into spirit!",
+    "Nature blooms where there was once death!",
+    "The heavens open! A miracle occurs!",
+  ],
+};
+
+// Template data with NPCs
 const templateAgents: TournamentAgent[] = [
   {
     id: "1",
@@ -86,6 +132,73 @@ const templateAgents: TournamentAgent[] = [
     followers: 134,
     status: "TALKING",
     lastAction: Date.now() - 2000,
+  },
+  // NPCs
+  {
+    id: "npc1",
+    name: "Wandering Monk",
+    symbol: "MONK",
+    color: "#a78bfa",
+    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=monk",
+    stakedAmount: "100",
+    followers: 45,
+    status: "IDLE",
+    lastAction: Date.now() - 15000,
+  },
+  {
+    id: "npc2",
+    name: "Lost Pilgrim",
+    symbol: "PILG",
+    color: "#60a5fa",
+    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=pilgrim",
+    stakedAmount: "50",
+    followers: 23,
+    status: "IDLE",
+    lastAction: Date.now() - 20000,
+  },
+  {
+    id: "npc3",
+    name: "Ancient Seer",
+    symbol: "SEER",
+    color: "#f472b6",
+    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=seer",
+    stakedAmount: "300",
+    followers: 78,
+    status: "IDLE",
+    lastAction: Date.now() - 8000,
+  },
+  {
+    id: "npc4",
+    name: "Forest Guardian",
+    symbol: "GRDN",
+    color: "#34d399",
+    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=guardian",
+    stakedAmount: "200",
+    followers: 56,
+    status: "IDLE",
+    lastAction: Date.now() - 12000,
+  },
+  {
+    id: "npc5",
+    name: "Forgotten Soul",
+    symbol: "SOUL",
+    color: "#94a3b8",
+    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=soul",
+    stakedAmount: "75",
+    followers: 31,
+    status: "IDLE",
+    lastAction: Date.now() - 25000,
+  },
+  {
+    id: "npc6",
+    name: "Herald of Light",
+    symbol: "HERL",
+    color: "#fbbf24",
+    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=herald",
+    stakedAmount: "400",
+    followers: 92,
+    status: "IDLE",
+    lastAction: Date.now() - 6000,
   },
 ];
 
@@ -139,10 +252,54 @@ const templateInteractions: Interaction[] = [
 const templateGameState: GameState = {
   phase: "CRUSADE",
   round: 2,
-  timeLeft: 185,
+  timeLeft: 180,
   activeInteractions: templateInteractions,
   recentEvents: ["Divine Warrior gained 12 followers", "Void Walker initiated a debate"],
 };
+
+// Helper to get random item from array
+function getRandomItem<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// Generate a new interaction using scripture templates
+function generateInteraction(allAgents: TournamentAgent[]): Interaction {
+  const activeAgents = allAgents.filter(a => !a.id.startsWith('npc'));
+  const agent1 = getRandomItem(activeAgents);
+  const agent2 = getRandomItem(allAgents.filter(a => a.id !== agent1.id));
+  
+  const interactionTypes: ("DEBATE" | "CONVERT" | "ALLIANCE" | "BETRAYAL")[] = ["DEBATE", "CONVERT", "ALLIANCE", "BETRAYAL"];
+  const type = getRandomItem(interactionTypes);
+  const typeScripts = scriptures[type];
+  
+  const messages = [
+    {
+      senderId: agent1.id,
+      text: getRandomItem(typeScripts),
+      timestamp: Date.now() - 3000,
+    },
+    {
+      senderId: agent2.id,
+      text: getRandomItem(typeScripts),
+      timestamp: Date.now() - 1500,
+    },
+    {
+      senderId: agent1.id,
+      text: getRandomItem(typeScripts),
+      timestamp: Date.now(),
+    },
+  ];
+  
+  return {
+    id: `int-${Date.now()}-${Math.random()}`,
+    type,
+    agent1Id: agent1.id,
+    agent2Id: agent2.id,
+    messages,
+    winnerId: Math.random() > 0.5 ? agent1.id : agent2.id,
+    timestamp: Date.now(),
+  };
+}
 
 export default function LiveFaithTheater({
   onGlobalError,
@@ -157,6 +314,90 @@ export default function LiveFaithTheater({
     setAgents(templateAgents);
     setGameState(templateGameState);
   }, []);
+
+  // Fast interaction generation - every 2-3 seconds
+  useEffect(() => {
+    if (!gameState) return;
+
+    const interval = setInterval(() => {
+      setGameState(prev => {
+        if (!prev) return prev;
+        
+        const newInteraction = generateInteraction(agents);
+        const updatedInteractions = [newInteraction, ...prev.activeInteractions].slice(0, 10);
+        
+        // Update agent statuses
+        setAgents(prevAgents => prevAgents.map(a => ({
+          ...a,
+          status: (a.id === newInteraction.agent1Id || a.id === newInteraction.agent2Id) 
+            ? 'TALKING' as const 
+            : 'IDLE' as const,
+          lastAction: Date.now(),
+        })));
+
+        // Generate events
+        const agent1 = agents.find(a => a.id === newInteraction.agent1Id);
+        const agent2 = agents.find(a => a.id === newInteraction.agent2Id);
+        const winnerName = newInteraction.winnerId === newInteraction.agent1Id ? agent1?.name : agent2?.name;
+
+        const events = [
+          `${winnerName} won the ${newInteraction.type}!`,
+          `${newInteraction.type}: ${agent1?.name} vs ${agent2?.name}`,
+        ];
+
+        return {
+          ...prev,
+          activeInteractions: updatedInteractions,
+          recentEvents: events,
+        };
+      });
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [gameState, agents]);
+
+  // Timer countdown
+  useEffect(() => {
+    if (!gameState) return;
+
+    const interval = setInterval(() => {
+      setGameState(prev => {
+        if (!prev || prev.timeLeft <= 0) return prev;
+        
+        // Phase progression
+        let newPhase = prev.phase;
+        let newRound = prev.round;
+        let newTimeLeft = prev.timeLeft - 1;
+
+        if (newTimeLeft <= 0) {
+          const phases = ['GENESIS', 'CRUSADE', 'APOCALYPSE', 'RESOLUTION'];
+          const currentIdx = phases.indexOf(prev.phase);
+          
+          if (currentIdx < phases.length - 1) {
+            newPhase = phases[currentIdx + 1] as any;
+            newTimeLeft = 180;
+            if (newPhase === 'CRUSADE') {
+              newRound = 2;
+            } else if (newPhase === 'APOCALYPSE') {
+              newRound = 3;
+            }
+          } else {
+            newPhase = 'RESOLUTION';
+            newTimeLeft = 0;
+          }
+        }
+
+        return {
+          ...prev,
+          phase: newPhase,
+          round: newRound,
+          timeLeft: newTimeLeft,
+        };
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [gameState]);
 
   // Auto-scroll chat
   useEffect(() => {
