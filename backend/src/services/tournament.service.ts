@@ -192,7 +192,7 @@ class TournamentService {
          if (!agent) return '';
          const mapAgent = this.agents.get(agent.id);
          if (!mapAgent) return '';
-         mapAgent.stakedAmount = BigInt(mapAgent.stakedAmount) + BigInt(amount);
+         mapAgent.stakedAmount += BigInt(amount);
          return `🐳 WHALE ALERT: ${amount} MON staked on ${agent.symbol}`;
       },
       () => {
