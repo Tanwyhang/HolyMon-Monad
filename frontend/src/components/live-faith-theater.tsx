@@ -327,6 +327,64 @@ function ConversionEffect({
   );
 }
 
+// Typing message component - uses the hook properly
+function TypingMessage({ 
+  msg, 
+  sender, 
+  isLeft 
+}: { 
+  msg: { senderId: string; text: string; timestamp: number; typing?: boolean };
+  sender: TournamentAgent;
+  isLeft: boolean;
+}) {
+  const { displayedText, isTyping } = useTypingEffect(msg.text, 15);
+
+  return (
+    <div
+      className={cn(
+        "flex gap-4 max-w-[95%]",
+        isLeft ? "mr-auto" : "ml-auto flex-row-reverse",
+      )}
+    >
+      <div
+        className={`
+          w-8 h-8 rounded shrink-0 bg-gray-800 overflow-hidden mt-1 ring-1 ring-offset-1 ring-offset-black
+          ${sender.status === 'TALKING' ? 'ring-2 ring-green-500 animate-pulse' : ''}
+        `}
+        style={{ "--tw-ring-color": sender.color } as any}
+      >
+        <img src={sender.avatar} alt={sender.symbol} />
+      </div>
+      <div
+        className={cn(
+          "p-3 rounded-2xl text-sm leading-relaxed relative",
+          isLeft
+            ? "bg-gray-900 text-gray-200 rounded-tl-none"
+            : "bg-purple-900/20 text-purple-100 rounded-tr-none",
+        )}
+      >
+        <div
+          className="text-[10px] font-bold opacity-50 mb-1 flex items-center gap-2"
+          style={{ color: sender.color }}
+        >
+          {sender.name}
+          {isTyping && (
+            <span className="flex gap-1">
+              <span className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </span>
+          )}
+        </div>
+        <div className="relative">
+          {displayedText}
+          {isTyping && <span className="animate-pulse">|</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Generate a new interaction using scripture templates
 function generateInteraction(allAgents: TournamentAgent[]): Interaction {
   const activeAgents = allAgents.filter(a => !a.id.startsWith('npc'));
@@ -798,53 +856,8 @@ export default function LiveFaithTheater({
                       {interaction.messages.map((msg, idx) => {
                         const sender = msg.senderId === a1.id ? a1 : a2;
                         const isLeft = msg.senderId === a1.id;
-                        const { displayedText, isTyping } = useTypingEffect(msg.text, 15);
 
-                        return (
-                          <div
-                            key={idx}
-                            className={cn(
-                              "flex gap-4 max-w-[95%]",
-                              isLeft ? "mr-auto" : "ml-auto flex-row-reverse",
-                            )}
-                          >
-                            <div
-                              className={`
-                                w-8 h-8 rounded shrink-0 bg-gray-800 overflow-hidden mt-1 ring-1 ring-offset-1 ring-offset-black
-                                ${sender.status === 'TALKING' ? 'ring-2 ring-green-500 animate-pulse' : ''}
-                              `}
-                              style={{ "--tw-ring-color": sender.color } as any}
-                            >
-                              <img src={sender.avatar} alt={sender.symbol} />
-                            </div>
-                            <div
-                              className={cn(
-                                "p-3 rounded-2xl text-sm leading-relaxed relative",
-                                isLeft
-                                  ? "bg-gray-900 text-gray-200 rounded-tl-none"
-                                  : "bg-purple-900/20 text-purple-100 rounded-tr-none",
-                              )}
-                            >
-                              <div
-                                className="text-[10px] font-bold opacity-50 mb-1 flex items-center gap-2"
-                                style={{ color: sender.color }}
-                              >
-                                {sender.name}
-                                {isTyping && (
-                                  <span className="flex gap-1">
-                                    <span className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                    <span className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                    <span className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                                  </span>
-                                )}
-                              </div>
-                              <div className="relative">
-                                {displayedText}
-                                {isTyping && <span className="animate-pulse">|</span>}
-                              </div>
-                            </div>
-                          </div>
-                        );
+                        return <TypingMessage key={idx} msg={msg} sender={sender} isLeft={isLeft} />;
                       })}
                     </div>
 
