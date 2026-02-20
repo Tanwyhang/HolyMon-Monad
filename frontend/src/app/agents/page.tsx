@@ -135,10 +135,15 @@ export default function MyAgents() {
                 href={`/agent/${agent.id}`}
                 className="group flex flex-col items-center gap-2"
               >
-                <div className="relative animate-float" style={{ animationDelay: `${index * 0.4}s` }}>
+                <div
+                  className="relative animate-float"
+                  style={{ animationDelay: `${index * 0.4}s` }}
+                >
                   <div className="absolute inset-0 bg-[#836EF9] rounded-lg blur-lg opacity-0 group-hover:opacity-40 transition-opacity duration-300 [transition-timing-function:cubic-bezier(0,.4,.01,.99)] scale-110" />
 
-                  <div className={`relative bg-black p-1 border-2 transition-all duration-300 [transition-timing-function:cubic-bezier(0,.4,.01,.99)] rounded-lg overflow-hidden group-hover:scale-105 ${isArenaReady ? "border-white" : "border-neutral-700 group-hover:border-[#836EF9]"}`}>
+                  <div
+                    className={`relative bg-black p-1 border-2 transition-all duration-300 [transition-timing-function:cubic-bezier(0,.4,.01,.99)] rounded-lg overflow-hidden group-hover:scale-105 ${isArenaReady ? "border-white" : "border-neutral-700 group-hover:border-[#836EF9]"}`}
+                  >
                     <AgentAvatar
                       seed={agent.id}
                       size={80}
@@ -146,7 +151,9 @@ export default function MyAgents() {
                     />
                   </div>
 
-                  <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-[#0a0a12] ${isArenaReady ? "bg-blue-500" : "bg-neutral-600"}`} />
+                  <div
+                    className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-[#0a0a12] ${isArenaReady ? "bg-blue-500" : "bg-neutral-600"}`}
+                  />
 
                   <div className="absolute -top-1 -left-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center text-[8px] font-black text-black border-2 border-[#0a0a12]">
                     {agent.tier}

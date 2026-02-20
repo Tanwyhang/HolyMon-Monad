@@ -15,7 +15,8 @@
     "build:frontend": "cd frontend && bun run build",
     "test": "concurrently \"cd backend && bun test\" \"cd frontend && bun test\"",
     "test:backend": "cd backend && bun test",
-    "test:frontend": "cd frontend && bun test"
+    "test:frontend": "cd frontend && bun test",
+    "kill": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true && lsof -ti:8765 | xargs kill -9 2>/dev/null || true"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

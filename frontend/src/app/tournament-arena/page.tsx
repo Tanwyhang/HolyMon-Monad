@@ -1,21 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import LiveFaithTheater from "@/components/live-faith-theater";
-import TournamentStats from "@/components/tournament-stats";
+import dynamic from "next/dynamic";
 import TournamentErrorBoundary from "@/components/tournament-error-boundary";
-import AgentSelectionModal from "@/components/agent-selection-modal";
-import { useAccount } from "wagmi";
 import type { HolyMonAgent } from "@/types/agent";
 import { useState, useEffect } from "react";
 
-export default function TournamentArena() {
-  const { address, isConnected } = useAccount();
+// Dynamically import components that use WalletConnect to avoid SSR issues
+const LiveFaithTheater = dynamic(
+  () => import("@/components/live-faith-theater").then((m) => m.default),
+  {
+    ssr: false,
+  },
+);
+
+const TournamentStats = dynamic(
+  () => import("@/components/tournament-stats").then((m) => m.default),
+  {
+    ssr: false,
+  },
+);
+
+const AgentSelectionModal = dynamic(
+  () => import("@/components/agent-selection-modal").then((m) => m.default),
+  {
+    ssr: false,
+  },
+);
+
+// Simple tournament arena content without wallet functionality
+function TournamentArenaContent() {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [showAgentModal, setShowAgentModal] = useState(false);
 
   useEffect(() => {
-    // Listen for global errors from components
     const handleGlobalError = (event: CustomEvent) => {
       setGlobalError((event as any).detail);
     };
@@ -70,28 +88,8 @@ export default function TournamentArena() {
     <>
       <TournamentErrorBoundary>
         <main className="h-screen bg-black text-white font-sans flex flex-col overflow-hidden">
-          <div className="absolute top-4 left-4 z-20">
-            <button
-              onClick={() => setShowAgentModal(true)}
-              disabled={!isConnected}
-              className={`
-                px-6 py-3 font-bold rounded-lg border-4 border-black transition-all duration-200
-                ${
-                  isConnected
-                    ? "bg-amber-500 hover:bg-amber-400 hover:translate-x-1 hover:translate-y-1 hover:shadow-2xl"
-                    : "bg-gray-700 cursor-not-allowed opacity-50"
-                }
-              `}
-            >
-              {isConnected ? "🏟️ Join Arena" : "🔌 Connect Wallet"}
-            </button>
-          </div>
-
           <div className="flex-1 relative">
             <LiveFaithTheater onGlobalError={setGlobalError} />
-          </div>
-          <div className="absolute top-4 right-4 w-80 pointer-events-auto">
-            <TournamentStats onGlobalError={setGlobalError} />
           </div>
         </main>
       </TournamentErrorBoundary>
@@ -103,4 +101,8 @@ export default function TournamentArena() {
       />
     </>
   );
+}
+
+export default function TournamentArena() {
+  return <TournamentArenaContent />;
 }

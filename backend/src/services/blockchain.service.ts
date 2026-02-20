@@ -148,11 +148,12 @@ export async function getAgentBlockchainData(
 export async function enhanceAgentWithBlockchainData(
   agent: Partial<TournamentAgent>
 ): Promise<TournamentAgent> {
-  if (!agent.id || !agent.avatar) {
+  if (!agent.id) {
     return agent as TournamentAgent;
   }
 
   const address = agent.id.startsWith('0x') ? agent.id : `0x${agent.id}`;
+  const avatar = agent.avatar || `https://api.dicebear.com/9.x/pixel-art/svg?seed=${agent.name || 'agent'}`;
 
   try {
     const blockchainData = await getAgentBlockchainData(address);

@@ -54,17 +54,18 @@ interface APIResponse<T> {
   message?: string;
 }
 
-  export default function Religions() {
-    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8765";
+export default function Religions() {
+  const BACKEND_URL =
+    process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8765";
 
-    const [activeTab, setActiveTab] = useState<"agents" | "coalitions" | "stats">(
-      "agents",
-    );
-    const [agents, setAgents] = useState<ReligiousAgent[]>([]);
-    const [coalitions, setCoalitions] = useState<Coalition[]>([]);
-    const [stats, setStats] = useState<ReligionStats | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"agents" | "coalitions" | "stats">(
+    "agents",
+  );
+  const [agents, setAgents] = useState<ReligiousAgent[]>([]);
+  const [coalitions, setCoalitions] = useState<Coalition[]>([]);
+  const [stats, setStats] = useState<ReligionStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     console.log("[Religions] Component mounted, fetching data...");

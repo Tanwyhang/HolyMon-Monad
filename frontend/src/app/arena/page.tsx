@@ -189,9 +189,7 @@ export default function Arena() {
                         </p>
                       </div>
                       <div className="border-2 border-white p-3">
-                        <p className="text-sm font-bold uppercase mb-1">
-                          Ends
-                        </p>
+                        <p className="text-sm font-bold uppercase mb-1">Ends</p>
                         <p className="text-2xl font-black uppercase">
                           {tournament.endsIn}
                         </p>
@@ -229,7 +227,8 @@ export default function Arena() {
                           {tournament.name}
                         </h3>
                         <p className="text-lg font-bold uppercase">
-                          {tournament.registered}/{tournament.maxParticipants} Registered
+                          {tournament.registered}/{tournament.maxParticipants}{" "}
+                          Registered
                         </p>
                       </div>
                       <span className="px-4 py-2 text-xl font-black uppercase border-2 border-white bg-white text-black">

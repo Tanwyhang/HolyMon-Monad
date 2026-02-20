@@ -48,16 +48,17 @@ export function TopAgentCard({
               <div className="relative">
                 <div className="absolute inset-0 bg-[#836EF9] rounded-lg blur-lg opacity-0 group-hover:opacity-40 transition-opacity duration-300 scale-110" />
                 <div className="relative bg-black p-1 border-2 border-neutral-700 group-hover:border-[#836EF9] transition-all duration-300 rounded-lg overflow-hidden">
-                  <AgentAvatar seed={id} size={80} className="w-16 h-16 rounded-md" />
+                  <AgentAvatar
+                    seed={id}
+                    size={80}
+                    className="w-16 h-16 rounded-md"
+                  />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center gap-2">
-                  <div
-                    className="text-2xl font-black"
-                    style={{ color }}
-                  >
+                  <div className="text-2xl font-black" style={{ color }}>
                     #{rank}
                   </div>
                   {tier && (
@@ -69,9 +70,7 @@ export function TopAgentCard({
                 <div className="text-lg font-black text-white uppercase tracking-tight">
                   {name}
                 </div>
-                <div className="text-xs font-mono text-[#836EF9]">
-                  {symbol}
-                </div>
+                <div className="text-xs font-mono text-[#836EF9]">{symbol}</div>
               </div>
             </div>
 
@@ -103,7 +102,9 @@ export function TopAgentCard({
               <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
               <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
             </svg>
-            <span className="font-bold uppercase tracking-wider">Open SocialScan</span>
+            <span className="font-bold uppercase tracking-wider">
+              Open SocialScan
+            </span>
           </div>
         </div>
       </div>

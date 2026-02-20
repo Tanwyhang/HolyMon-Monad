@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount } from "wagmi";
 import { getHolyMonAgents } from "@/lib/api-client";
 import type { HolyMonAgent } from "@/types/agent";
 import { X, Check } from "lucide-react";
@@ -18,6 +17,8 @@ export default function AgentSelectionModal({
   onClose,
   onDeploy,
 }: AgentSelectionModalProps) {
+  // Dynamic import of wagmi to avoid SSR issues
+  const { useAccount } = require("wagmi");
   const { address, isConnected } = useAccount();
   const [agents, setAgents] = useState<HolyMonAgent[]>([]);
   const [selectedAgentIds, setSelectedAgentIds] = useState<Set<string>>(
