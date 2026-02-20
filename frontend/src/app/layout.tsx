@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "next-themes";
 
 import { siteConfig } from "@/app/constants";
-import { inter } from "@/app/fonts";
+import { inter, doto, pressStart2P } from "@/app/fonts";
 import "@/app/globals.css";
 import { ProgressBar } from "@/app/progress-bar";
 import { Toaster } from "@/app/toaster";
@@ -45,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html suppressHydrationWarning lang="en" className={inter.className}>
+    <html suppressHydrationWarning lang="en" className={`${doto.variable} ${inter.variable} ${pressStart2P.variable} ${doto.className}`}>
       <body className="min-h-dvh antialiased bg-black text-white overscroll-none">
         <div className="flex min-h-dvh w-full flex-col grow pt-16">
           <div className="flex grow flex-col size-full min-h-dvh">

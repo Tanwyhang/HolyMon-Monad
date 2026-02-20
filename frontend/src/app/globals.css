@@ -1,9 +1,8 @@
-@import url("https://fonts.googleapis.com/css2?family=Doto:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
 * {
-  font-family: "Doto", sans-serif;
+  font-family: var(--font-doto), sans-serif;
 }
 
 html {
@@ -344,7 +343,7 @@ html {
 
 /* Web3Modal Custom Styles */
 :root {
-  --w3m-font-family: "Doto", sans-serif;
+  --w3m-font-family: var(--font-doto), sans-serif;
   --w3m-z-index: 9999;
   --w3m-color-mix: 0;
   --w3m-accent: #836ef9;
