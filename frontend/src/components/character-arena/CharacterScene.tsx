@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useAnimationContext } from './AnimationContext';
 import { AnimatedNsfwCharacter } from './AnimatedNsfwCharacter';
 import { BackgroundSky } from './BackgroundSky';
@@ -19,17 +19,6 @@ import * as THREE from 'three';
 
 /** Scale used for Jesus and NPCs so they match in size */
 const CHARACTER_SCALE = 0.04;
-
-/** Boss position (right of Jesus at 0,0,0); 3 Leng spread out behind the Boss */
-const NSFW_BOSS_POSITION: [number, number, number] = [6, 0, 0];
-const LENG_POSITIONS: [number, number, number][] = [
-  [2, 0, -4],
-  [6, 0, -4],
-  [10, 0, -4],
-];
-
-/** Moanad GOD (and Maze) position – used for external pray glow */
-const MOANAD_MAZE_POSITION: [number, number, number] = [-6, 0, 0];
 /** Spiky glow offset: higher, a bit in front (+Z), and right (+X) */
 const MAZE_GLOW_HEIGHT = 6;
 const MAZE_GLOW_FRONT = 1.2;
@@ -37,6 +26,32 @@ const MAZE_GLOW_RIGHT = 0.15;
 
 /** How long the spike takes to appear (scale + opacity) */
 const SPIKE_APPEAR_DURATION = 1.5;
+
+/** Camera offset behind Jesus: height, distance, and look-at tilt. */
+const CAMERA_HEIGHT = 12;
+const CAMERA_DISTANCE = 25;
+/** Slight tilt down: look at this many units below Jesus center. */
+const CAMERA_LOOK_DOWN = 2;
+
+/** Keeps the camera behind Jesus (third-person), or in front when cameraInFrontOfJesus is true. */
+function CameraFollowJesus() {
+  const { camera } = useThree();
+  const { jesusPositionRef, jesusRotationYRef, characterPositions, cameraInFrontOfJesus } = useAnimationContext();
+
+  useFrame(() => {
+    const pos = jesusPositionRef.current ?? characterPositions.jesus;
+    const ry = jesusRotationYRef.current;
+    const [jx, jy, jz] = pos;
+    const sign = cameraInFrontOfJesus ? 1 : -1;
+    const camX = jx + sign * CAMERA_DISTANCE * Math.sin(ry);
+    const camY = jy + CAMERA_HEIGHT;
+    const camZ = jz + sign * CAMERA_DISTANCE * Math.cos(ry);
+    camera.position.set(camX, camY, camZ);
+    camera.lookAt(jx, jy - CAMERA_LOOK_DOWN, jz);
+  });
+
+  return null;
+}
 
 /** Spiky burst above Maze – gradient, spikes only, appears gradually, reactive. */
 function MazeGlowEffect({ position }: { position: [number, number, number] }) {
@@ -138,13 +153,17 @@ function MazeGlowEffect({ position }: { position: [number, number, number] }) {
 }
 
 export function CharacterScene() {
-  const { jesusState, npcs, prayPhase } = useAnimationContext();
+  const { jesusState, npcs, prayPhase, characterPositions, jesusInvertFacing, jesusFaceRight, preparingRun, firstWalkLerp, firstWalkDurationSec, runLerp, runDurationSec, jesusFaceToward, jesusLerpArrivedRef, npcLerpArrivedRef, meetingNpcIdRef, jesusPositionRef, jesusRotationYRef, meetingNpcPositionRef, jesusSnapToRef, meetingNpcSnapRef } = useAnimationContext();
   const spikeVisible = prayPhase >= 1;
   /** Maze spins fast for the whole pray sequence (phase 0 = accelerate, phase 1+2 = keep same speed) */
   const mazeSpinSpeed = prayPhase >= 0 ? 10 : 1;
+  const castlePos = characterPositions.castle;
+  const moanadPos = characterPositions.moanad;
+  const lengPositions = [characterPositions.leng1, characterPositions.leng2, characterPositions.leng3];
 
   return (
     <group>
+      <CameraFollowJesus />
       {/* Preload Jesus + NPC + Moanad + NSFW models so animation switch and spawn don't refresh scene */}
       <JesusPreload />
       <NpcPreload />
@@ -155,27 +174,27 @@ export function CharacterScene() {
       <directionalLight position={[10, 10, 10]} intensity={1} />
       <pointLight position={[-10, -10, 10]} intensity={0.5} color="#836ef9" />
       {/* Top light on castle (middle) */}
-      <directionalLight position={[0, 100, -35]} intensity={2.2} castShadow />
-      <pointLight position={[0, 60, -35]} intensity={0.7} distance={180} />
+      <directionalLight position={[castlePos[0], 100, castlePos[2]]} intensity={2.2} castShadow />
+      <pointLight position={[castlePos[0], 60, castlePos[2]]} intensity={0.7} distance={180} />
       {/* Four directional lights around castle */}
-      <directionalLight position={[50, 45, -35]} intensity={1.1} />
-      <directionalLight position={[-50, 45, -35]} intensity={1.1} />
-      <directionalLight position={[0, 45, -80]} intensity={1.1} />
-      <directionalLight position={[0, 45, 10]} intensity={1.1} />
+      <directionalLight position={[castlePos[0] + 50, 45, castlePos[2]]} intensity={1.1} />
+      <directionalLight position={[castlePos[0] - 50, 45, castlePos[2]]} intensity={1.1} />
+      <directionalLight position={[castlePos[0], 45, castlePos[2] - 45]} intensity={1.1} />
+      <directionalLight position={[castlePos[0], 45, castlePos[2] + 45]} intensity={1.1} />
 
       {/* Background - Dark purple cloud sky */}
       <BackgroundSky />
 
-      {/* Castle - scale 1 (70×22×70), centered behind */}
-      <Castle position={[0, 0, -35]} scale={[1, 1, 1]} />
+      {/* Castle - scaled up, centered behind */}
+      <Castle position={castlePos} scale={[4, 4, 4]} />
 
       {/* Jesus Character - Center stage, same scale as NPCs */}
-      <JesusCharacter animationState={jesusState} position={[0, 0, 0]} scale={CHARACTER_SCALE} />
+      <JesusCharacter animationState={jesusState} position={characterPositions.jesus} scale={CHARACTER_SCALE} invertFacing={jesusInvertFacing} faceRight={jesusFaceRight} preparingRun={preparingRun} firstWalkLerp={firstWalkLerp} firstWalkDurationSec={firstWalkDurationSec} runLerp={runLerp} runDurationSec={runDurationSec} faceToward={jesusFaceToward} jesusLerpArrivedRef={jesusLerpArrivedRef} jesusPositionRef={jesusPositionRef} jesusRotationYRef={jesusRotationYRef} jesusSnapToRef={jesusSnapToRef} />
 
       {/* Moanad GOD - Left; Maze spins; phase 0 = accelerate, then normal */}
       <StaticFbxCharacter
         url={MOANAD_GOD_PATH}
-        position={[-6, 0, 0]}
+        position={moanadPos}
         scale={0.01}
         recolor={{ names: ['Mask', 'Maze', 'Mash'], color: 0x800080 }}
         spinMeshNames={['Maze']}
@@ -189,8 +208,8 @@ export function CharacterScene() {
       {/* Phase 1+: spike + point light; Jesus plays Praying in phase 2 */}
       {spikeVisible && (
         <>
-          <pointLight position={MOANAD_MAZE_POSITION} color={0x800080} intensity={1.2} distance={6} />
-          <MazeGlowEffect position={MOANAD_MAZE_POSITION} color={0x800080} />
+          <pointLight position={moanadPos} color={0x800080} intensity={1.2} distance={6} />
+          <MazeGlowEffect position={moanadPos} color={0x800080} />
         </>
       )}
 
@@ -198,17 +217,19 @@ export function CharacterScene() {
       <AnimatedNsfwCharacter
         modelIndex={NSFW_INDEX.modelBoss}
         animationIndex={jesusState === 'deal' ? NSFW_INDEX.animDeal : NSFW_INDEX.animBossIdle}
-        position={NSFW_BOSS_POSITION}
+        position={characterPositions.boss}
         scale={CHARACTER_SCALE}
+        invertFacing
       />
       {/* 3 Leng behind the Boss - default LengTwerk */}
-      {LENG_POSITIONS.map((pos, i) => (
+      {lengPositions.map((pos, i) => (
         <AnimatedNsfwCharacter
           key={i}
           modelIndex={NSFW_INDEX.modelLeng}
           animationIndex={NSFW_INDEX.animLengTwerk}
           position={pos}
           scale={CHARACTER_SCALE}
+          invertFacing
         />
       ))}
 
@@ -219,6 +240,10 @@ export function CharacterScene() {
           instance={npc}
           position={npc.position}
           scale={CHARACTER_SCALE}
+          npcLerpArrivedRef={npcLerpArrivedRef}
+          meetingNpcIdRef={meetingNpcIdRef}
+          meetingNpcPositionRef={meetingNpcPositionRef}
+          meetingNpcSnapRef={meetingNpcSnapRef}
         />
       ))}
     </group>

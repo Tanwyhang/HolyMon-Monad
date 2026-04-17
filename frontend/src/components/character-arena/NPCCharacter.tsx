@@ -1,5 +1,6 @@
 "use client";
 
+import type { MutableRefObject } from 'react';
 import { useRef, useMemo, useEffect, useState } from 'react';
 import { useFrame, useLoader } from '@react-three/fiber';
 import { FBXLoader } from 'three-stdlib';
@@ -14,6 +15,40 @@ import {
   getNpcAnimationIndex,
 } from './npcPaths';
 
+/** Strip root motion from a clip so position is fully driven by script (lerp). */
+function clipWithoutRootMotion(clip: THREE.AnimationClip, rootBoneName: string): THREE.AnimationClip {
+  const filtered = clip.tracks.filter((track) => {
+    if (!track.name.includes(rootBoneName)) return true;
+    const lower = track.name.toLowerCase();
+    if (lower.includes('.position') || lower.includes('position')) return false;
+    if (lower.includes('.quaternion') || lower.includes('quaternion')) return false;
+    return true;
+  });
+  return new THREE.AnimationClip(clip.name + '_noRoot', clip.duration, filtered);
+}
+
+/** Find the root bone name from animation tracks (more reliable than traversing the model) */
+function findRootBoneNameFromClip(clip: THREE.AnimationClip): string {
+  // Group tracks by the bone they affect
+  const boneNames = new Set<string>();
+  clip.tracks.forEach((track) => {
+    const match = track.name.match(/^([^\.]+)/);
+    if (match) boneNames.add(match[1]);
+  });
+
+  // The root bone is typically the one with position tracks at the top level
+  for (const boneName of boneNames) {
+    const hasPosition = clip.tracks.some(track =>
+      track.name.startsWith(boneName) &&
+      (track.name.includes('.position') || track.name.toLowerCase().includes('position'))
+    );
+    if (hasPosition) return boneName;
+  }
+
+  // Fallback: return first bone name found
+  return boneNames.size > 0 ? Array.from(boneNames)[0] : '';
+}
+
 // Success timeline (no clone): 0–4s unconverted Idle3 + spin; 4s switch to converted Idle3 + spin; 6s pulse effect; 9s Success 1/2/3, face front
 const SUCCESS_SPIN_ACCEL_END = 4;
 const SUCCESS_SWITCH_EFFECT_AT = 4;   // scale pulse at 4s (switch frame)
@@ -27,27 +62,37 @@ interface NPCCharacterProps {
   instance: NPCInstance;
   position?: Triple;
   scale?: number;
+  /** When this NPC is the meeting NPC and walk progress >= 1, set to true (for arrival-based meeting trigger). */
+  npcLerpArrivedRef?: MutableRefObject<boolean>;
+  /** Id of NPC currently walking to meeting; only that NPC sets npcLerpArrivedRef. */
+  meetingNpcIdRef?: MutableRefObject<string | null>;
+  /** Written every frame by the meeting NPC with world position (for distance-based arrival). */
+  meetingNpcPositionRef?: MutableRefObject<[number, number, number] | null>;
+  /** When set and instance.id matches, snap group to this position then clear. */
+  meetingNpcSnapRef?: MutableRefObject<{ id: string; position: [number, number, number] } | null>;
 }
 
 // Utility to get animation path based on state and optional stored index
 function getAnimationPath(instance: NPCInstance, talkingIdleIndex?: number): string {
   switch (instance.currentAnimation) {
+    case 'idle':
+      // Spawn / standing: Idle 3 only (no random walk)
+      return NPC_ANIMATION_PATHS.idle[2];
+
     case 'walking':
-      // Use stored walk animation index if available, otherwise random
+    case 'walkingLoop':
       const walkIdx = instance.walkAnimationIndex ?? Math.floor(Math.random() * 3);
       return NPC_ANIMATION_PATHS.walk[walkIdx];
 
     case 'talking':
-      // Default Idle 3 (index 2); in between play Idle 1 or 2 (index 0 or 1) once then back to 3
       const idleIdx = talkingIdleIndex ?? 2;
       return NPC_ANIMATION_PATHS.idle[idleIdx % 3];
 
     case 'cheering':
-      // Random success
       return NPC_ANIMATION_PATHS.success[Math.floor(Math.random() * 3)];
 
     case 'flyingKick':
-      // Random failed
+    case 'failed':
       return NPC_ANIMATION_PATHS.failed[Math.floor(Math.random() * 2)];
 
     default:
@@ -55,20 +100,26 @@ function getAnimationPath(instance: NPCInstance, talkingIdleIndex?: number): str
   }
 }
 
-export function NPCCharacter({ instance, position = [0, 0, 0], scale = 1 }: NPCCharacterProps) {
+export function NPCCharacter({ instance, position = [0, 0, 0], scale = 1, npcLerpArrivedRef, meetingNpcIdRef, meetingNpcPositionRef, meetingNpcSnapRef }: NPCCharacterProps) {
   const groupRef = useRef<THREE.Group>(null);
   const effectScaleGroupRef = useRef<THREE.Group>(null); // inner group for 6s pulse scale
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const mixerBaseRef = useRef<THREE.Group | THREE.Object3D | null>(null);
   const currentActionRef = useRef<THREE.AnimationAction | null>(null);
 
-  // Success timeline: use cached models only (no clone). Phase 0 = unconverted Idle3, 1 = converted Idle3, 2 = converted Success
-  const [successPhase, setSuccessPhase] = useState<0 | 1 | 2>(0);
+  // Success timeline: use cached models only (no clone). Phase 0 = unconverted Idle3, 1 = converted Idle3, 2 = converted Success. Crowd NPCs use successStartPhase 2.
+  const [successPhase, setSuccessPhase] = useState<0 | 1 | 2>(() => (instance.successStartPhase ?? 0));
   const successStartTimeRef = useRef<number | null>(null);
   const successMixerRef = useRef<THREE.AnimationMixer | null>(null);
   const successMixerBaseRef = useRef<THREE.Object3D | null>(null);
-  const successAnimationIndexRef = useRef(0);
-  const successIndexPickedRef = useRef(false);
+  const successAnimationIndexRef = useRef(instance.successAnimationIndex ?? 0);
+  const successIndexPickedRef = useRef(Boolean(instance.successStartPhase === 2));
+
+  // Random walk: lerp state for position during script-driven movement
+  const randomWalkStartTimeRef = useRef<number | null>(null);
+  const randomWalkCompleteRef = useRef(false);
+  const currentRotationYRef = useRef(0);
+  const lastWalkEndRef = useRef<[number, number, number] | null>(null);
 
   // Use preloaded FBX cache (same as NpcPreload) so spawn never suspends or flickers
   const allFbxs = useLoader(FBXLoader, ALL_NPC_FBX_PATHS);
@@ -82,9 +133,9 @@ export function NPCCharacter({ instance, position = [0, 0, 0], scale = 1 }: NPCC
     [baseScene]
   );
 
-  // Success: which model and clip to use; clone so each NPC has its own copy during cheering
+  // Success: which model and clip to use; clone so each NPC has its own copy during cheering. Crowd (successStartPhase 2) uses converted from start.
   const successBaseScene = instance.currentAnimation === 'cheering'
-    ? (successPhase === 0 ? allFbxs[instance.baseModelIndex] : allFbxs[4]) ?? allFbxs[0]
+    ? (instance.successStartPhase === 2 ? allFbxs[4] : (successPhase === 0 ? allFbxs[instance.baseModelIndex] : allFbxs[4])) ?? allFbxs[0]
     : null;
   const successBaseSceneClone = useMemo(
     () => (successBaseScene ? SkeletonUtils.clone(successBaseScene as THREE.Object3D) : null),
@@ -108,7 +159,11 @@ export function NPCCharacter({ instance, position = [0, 0, 0], scale = 1 }: NPCC
       return;
     }
     if (successPhase === 0 && !successIndexPickedRef.current) {
-      successAnimationIndexRef.current = Math.floor(Math.random() * 3);
+      successAnimationIndexRef.current = instance.successAnimationIndex ?? Math.floor(Math.random() * 3);
+      successIndexPickedRef.current = true;
+    }
+    if (instance.successStartPhase === 2) {
+      successAnimationIndexRef.current = instance.successAnimationIndex ?? 1;
       successIndexPickedRef.current = true;
     }
     const clipFbx = successPhase === 2
@@ -155,10 +210,23 @@ export function NPCCharacter({ instance, position = [0, 0, 0], scale = 1 }: NPCC
   // Animation FBX from same preloaded array (indices NPC_FBX_BASE_COUNT+)
   const animFbx = allFbxs[NPC_FBX_BASE_COUNT + getNpcAnimationIndex(animationPath)] ?? allFbxs[NPC_FBX_BASE_COUNT];
 
-  // Extract animation clips from FBX
+  // Extract animation clips from FBX; keep root motion for Fail, Success, Talk (Idle), strip for Walk only
   const animClips = useMemo(() => {
-    return animFbx?.animations ?? [];
-  }, [animFbx]);
+    const clips = animFbx?.animations ?? [];
+    if (!clips.length) return [];
+
+    const clip = clips[0];
+    const keepRootMotion =
+      animationPath.includes('Failed') ||
+      animationPath.includes('Success') ||
+      animationPath.includes('Idle');
+    if (keepRootMotion) return [clip];
+    const rootName = findRootBoneNameFromClip(clip);
+    if (rootName) {
+      return [clipWithoutRootMotion(clip, rootName)];
+    }
+    return [clip];
+  }, [animFbx, animationPath]);
 
   // Apply animation when it changes – crossfade to avoid T-pose gap between idles (skip when in success timeline)
   useEffect(() => {
@@ -200,9 +268,16 @@ export function NPCCharacter({ instance, position = [0, 0, 0], scale = 1 }: NPCC
     };
   }, [animationPath, baseClone, animClips]);
 
-  // Update mixer on each frame; when cheering run success timeline (spin, switch at 4s, pulse at 6s, Success + face front at 9s)
+  // Update mixer on each frame; when cheering run success timeline (spin, switch at 4s, pulse at 6s, Success + face front at 9s). Skip spin for crowd (successStartPhase 2).
   useFrame((state, delta) => {
     if (instance.currentAnimation === 'cheering') {
+      if (instance.successStartPhase === 2) {
+        if (successMixerRef.current) successMixerRef.current.update(delta);
+        if (groupRef.current && instance.overrideRotationY !== undefined) {
+          groupRef.current.rotation.y = instance.overrideRotationY;
+        }
+        return;
+      }
       const clock = state.clock.getElapsedTime();
       if (successStartTimeRef.current == null) successStartTimeRef.current = clock;
       const t = clock - successStartTimeRef.current;
@@ -215,13 +290,13 @@ export function NPCCharacter({ instance, position = [0, 0, 0], scale = 1 }: NPCC
             : 0;
       if (groupRef.current) {
         groupRef.current.rotation.y += spinSpeed * delta;
-        // When spin stops (9s+), lerp rotation.y to 0 so character faces front (shortest path)
+        // When spin stops (9s+), lerp rotation.y to face Jesus (overrideRotationY) or front if not set
         if (t >= SUCCESS_PLAY_ANIM_AT) {
           let ry = groupRef.current.rotation.y;
           const twoPi = 2 * Math.PI;
           ry = ((ry % twoPi) + twoPi) % twoPi;
           if (ry > Math.PI) ry -= twoPi; // wrap to [-PI, PI]
-          const target = 0;
+          const target = instance.overrideRotationY ?? 0;
           groupRef.current.rotation.y = ry + (target - ry) * Math.min(1, delta * SUCCESS_FACE_FRONT_LERP);
         }
       }
@@ -243,6 +318,61 @@ export function NPCCharacter({ instance, position = [0, 0, 0], scale = 1 }: NPCC
       if (successMixerRef.current) successMixerRef.current.update(delta);
       return;
     }
+
+    // Random walk: write position directly to group every frame so lerp is always fresh (no setState)
+    if (instance.randomWalkLerp && instance.randomWalkDurationSec && instance.randomWalkDurationSec > 0) {
+      if (randomWalkStartTimeRef.current === null) {
+        randomWalkStartTimeRef.current = state.clock.getElapsedTime();
+        randomWalkCompleteRef.current = false;
+      }
+      const elapsed = state.clock.getElapsedTime() - randomWalkStartTimeRef.current;
+      const progress = Math.min(1, elapsed / instance.randomWalkDurationSec);
+      const [sx, sy, sz] = instance.randomWalkLerp.start;
+      const [ex, ey, ez] = instance.randomWalkLerp.end;
+      const x = sx + (ex - sx) * progress;
+      const y = sy + (ey - sy) * progress;
+      const z = sz + (ez - sz) * progress;
+      if (groupRef.current) groupRef.current.position.set(x, y, z);
+
+      // Smoothly face movement direction (lerp rotation, shortest path)
+      if (groupRef.current && instance.targetRotationY !== undefined) {
+        const target = instance.targetRotationY;
+        let current = currentRotationYRef.current;
+        let diff = target - current;
+        const twoPi = 2 * Math.PI;
+        if (diff > Math.PI) diff -= twoPi;
+        if (diff < -Math.PI) diff += twoPi;
+        const turnSpeed = 4 * delta;
+        currentRotationYRef.current = current + diff * Math.min(1, turnSpeed);
+        groupRef.current.rotation.y = currentRotationYRef.current;
+      }
+
+      if (progress >= 1 && !randomWalkCompleteRef.current) {
+        randomWalkCompleteRef.current = true;
+        randomWalkStartTimeRef.current = null;
+        if (npcLerpArrivedRef && meetingNpcIdRef?.current === instance.id) npcLerpArrivedRef.current = true;
+      }
+      if (meetingNpcPositionRef && meetingNpcIdRef?.current === instance.id && groupRef.current) {
+        const p = groupRef.current.position;
+        meetingNpcPositionRef.current = [p.x, p.y, p.z];
+      }
+    } else {
+      // Not in random walk: clear lerp timers so next walk starts fresh; apply override rotation when talking
+      randomWalkStartTimeRef.current = null;
+      randomWalkCompleteRef.current = false;
+      if (instance.overrideRotationY !== undefined && groupRef.current != null) {
+        groupRef.current.rotation.y = instance.overrideRotationY;
+        currentRotationYRef.current = instance.overrideRotationY;
+      }
+    }
+    // Apply meeting snap so we don't loop at wrong position when arrival triggers before progress>=1
+    if (meetingNpcSnapRef?.current && meetingNpcSnapRef.current.id === instance.id && groupRef.current) {
+      const [x, y, z] = meetingNpcSnapRef.current.position;
+      groupRef.current.position.set(x, y, z);
+      lastWalkEndRef.current = [x, y, z];
+      meetingNpcSnapRef.current = null;
+    }
+
     if (effectScaleGroupRef.current) effectScaleGroupRef.current.scale.setScalar(1);
     if (mixerRef.current) mixerRef.current.update(delta);
   });
@@ -256,10 +386,18 @@ export function NPCCharacter({ instance, position = [0, 0, 0], scale = 1 }: NPCC
     };
   }, []);
 
-  const displayScene = instance.currentAnimation === 'cheering' && successBaseSceneClone ? successBaseSceneClone : baseClone;
+  const displayScene = instance.currentAnimation === 'cheering' && successBaseSceneClone && (instance.successStartPhase === 2 || successPhase >= 1) ? successBaseSceneClone : baseClone;
+
+  const inWalk = Boolean(instance.randomWalkLerp && instance.randomWalkDurationSec && instance.randomWalkDurationSec > 0);
+  if (inWalk && instance.randomWalkLerp) lastWalkEndRef.current = [...instance.randomWalkLerp.end];
+  // When a meeting snap is pending, use it so we don't show one frame at wrong position
+  const snapPosition = meetingNpcSnapRef?.current && meetingNpcSnapRef.current.id === instance.id
+    ? meetingNpcSnapRef.current.position
+    : null;
+  const displayPosition = snapPosition ?? (inWalk ? undefined : (lastWalkEndRef.current ?? position));
 
   return (
-    <group ref={groupRef} position={position} scale={scale}>
+    <group ref={groupRef} position={displayPosition} scale={scale}>
       <group ref={effectScaleGroupRef}>
         {displayScene && <primitive object={displayScene} />}
       </group>

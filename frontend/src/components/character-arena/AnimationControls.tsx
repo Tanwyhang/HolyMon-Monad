@@ -3,7 +3,7 @@
 import { useAnimationContext } from './AnimationContext';
 
 export function AnimationControls() {
-  const { spawnNPC, triggerTalk, triggerSuccess, triggerFail, triggerDeal, triggerPray, actionInProgress } = useAnimationContext();
+  const { spawnNPC, triggerTalk, triggerSuccess, triggerFail, triggerDeal, triggerPray, triggerFullFlow, actionInProgress } = useAnimationContext();
 
   const buttons = [
     {
@@ -41,6 +41,12 @@ export function AnimationControls() {
       action: triggerPray,
       color: 'bg-cyan-600 hover:bg-cyan-700',
       borderColor: 'border-cyan-400',
+    },
+    {
+      label: 'Full Flow',
+      action: triggerFullFlow,
+      color: 'bg-fuchsia-600 hover:bg-fuchsia-700',
+      borderColor: 'border-fuchsia-400',
     },
   ];
 

@@ -1,11 +1,10 @@
 "use client";
 
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
 import { AnimationProvider } from './AnimationContext';
 import { CharacterScene } from './CharacterScene';
-import { AnimationControls } from './AnimationControls';
+import { useAnimationContext } from './AnimationContext';
 
 // Loading fallback component
 function LoadingFallback() {
@@ -14,6 +13,68 @@ function LoadingFallback() {
       <div className="text-purple-500 text-2xl font-bold animate-pulse">
         Loading 3D Arena...
       </div>
+    </div>
+  );
+}
+
+function ArenaButtons() {
+  const {
+    triggerFullFlow,
+    triggerBossMeetTalkDeal,
+    triggerNpcMeetTalkFail,
+    triggerNpcMeetTalkSuccess,
+    triggerCrowdCheer,
+    actionInProgress,
+  } = useAnimationContext();
+  const [fullFlowHidden, setFullFlowHidden] = useState(false);
+
+  return (
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-wrap items-center justify-center gap-3 z-10">
+      {!fullFlowHidden && (
+        <button
+          type="button"
+          onClick={() => {
+            triggerFullFlow();
+            setFullFlowHidden(true);
+          }}
+          disabled={actionInProgress}
+          className="px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium shadow-lg"
+        >
+          1
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={triggerBossMeetTalkDeal}
+        disabled={actionInProgress}
+        className="px-6 py-3 rounded-lg bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium shadow-lg"
+      >
+        2
+      </button>
+      <button
+        type="button"
+        onClick={triggerNpcMeetTalkFail}
+        disabled={actionInProgress}
+        className="px-6 py-3 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium shadow-lg"
+      >
+        3
+      </button>
+      <button
+        type="button"
+        onClick={triggerNpcMeetTalkSuccess}
+        disabled={actionInProgress}
+        className="px-6 py-3 rounded-lg bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium shadow-lg"
+      >
+        4
+      </button>
+      <button
+        type="button"
+        onClick={triggerCrowdCheer}
+        disabled={actionInProgress}
+        className="px-6 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium shadow-lg"
+      >
+        5
+      </button>
     </div>
   );
 }
@@ -30,16 +91,8 @@ export default function CharacterArena() {
           <Suspense fallback={null}>
             <CharacterScene />
           </Suspense>
-          <OrbitControls
-            enablePan={true}
-            enableZoom={true}
-            maxPolarAngle={Math.PI / 2}
-            maxDistance={100}
-            minDistance={5}
-            target={[0, 2, 0]}
-          />
         </Canvas>
-        <AnimationControls />
+        <ArenaButtons />
       </AnimationProvider>
     </div>
   );

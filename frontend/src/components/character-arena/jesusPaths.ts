@@ -13,6 +13,10 @@ export const JESUS_ANIMATION_PATHS: Record<AnimationState, string> = {
   flyingKick: '/3d/Jesus - Flying Kick.fbx',
   deal: '/3d/Deal.fbx',
   praying: '/3d/Praying.fbx',
+  running: '/3d/Jesus - Running.fbx',
+  failed: '/3d/NPC - Failed 2.fbx',
+  walkingLoop: '/3d/Jesus - Walking.fbx',
+  rightTurn: '/3d/Jesus - RightTurn.fbx',
 };
 
 /** Order: model first, then one FBX per animation. */
@@ -25,6 +29,10 @@ export const ALL_JESUS_FBX_PATHS: string[] = [
   '/3d/Jesus - Flying Kick.fbx',
   '/3d/Deal.fbx',
   '/3d/Praying.fbx',
+  '/3d/Jesus - Running.fbx',
+  '/3d/NPC - Failed 2.fbx',
+  '/3d/Jesus - Walking.fbx',
+  '/3d/Jesus - RightTurn.fbx',
 ];
 
 /** Index into ALL_JESUS_FBX_PATHS for the animation clip (1 = idle/walking, 2 = talking, ...). */
@@ -37,4 +45,8 @@ export const JESUS_ANIMATION_INDEX: Record<AnimationState, number> = {
   flyingKick: 5,
   deal: 6,
   praying: 7,
+  running: 8,
+  failed: 9,
+  walkingLoop: 10,
+  rightTurn: 11,
 };

@@ -15,6 +15,8 @@ interface AnimatedNsfwCharacterProps {
   animationIndex: number;
   position?: Triple;
   scale?: number;
+  /** If true, rotate 180° around Y to face the opposite direction. */
+  invertFacing?: boolean;
 }
 
 export function AnimatedNsfwCharacter({
@@ -22,6 +24,7 @@ export function AnimatedNsfwCharacter({
   animationIndex,
   position = [0, 0, 0],
   scale = 1,
+  invertFacing = false,
 }: AnimatedNsfwCharacterProps) {
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
 
@@ -59,7 +62,11 @@ export function AnimatedNsfwCharacter({
   if (!clone) return null;
 
   return (
-    <group position={position} scale={scale}>
+    <group
+      position={position}
+      rotation={invertFacing ? [0, Math.PI, 0] : [0, 0, 0]}
+      scale={scale}
+    >
       <primitive object={clone} />
     </group>
   );
